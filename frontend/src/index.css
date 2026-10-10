@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Scroll-state aware chat scroller ─────────────────────────────── */
+.chat-scroller {
+  overflow-y: auto;
+  container-type: scroll-state;
+}
+
+/* Scroll-to-bottom FAB – visible by default (fallback for Firefox/Safari) */
+.scroll-to-bottom {
+  visibility: visible;
+  opacity: 1;
+  translate: 0 0;
+  transition: visibility 0.3s, opacity 0.3s ease, translate 0.3s ease;
+}
+
+/* Progressive enhancement: hide until scrolled away from bottom */
+@supports (container-type: scroll-state) {
+  .scroll-to-bottom {
+    visibility: hidden;
+    opacity: 0;
+    translate: 0 12px;
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .scroll-to-bottom {
+      visibility: visible;
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────── */
+@property --animation-reduced {
+  syntax: "*";
+  inherits: false;
+  initial-value: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: var(--animation-reduced) !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Custom scrollbar (Webkit) ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3d3d5c; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #5c63fa; }

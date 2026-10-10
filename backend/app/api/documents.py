@@ -1,0 +1,81 @@
+"""Documents CRUD and ingestion endpoints."""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_session
+from app.models.orm import Chunk, Document
+from app.models.schemas import DocumentCreate, DocumentList, DocumentRead
+from app.services.ingestion import ingest_document
+
+router = APIRouter()
+
+
+@router.post("/", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+async def create_document(
+    payload: DocumentCreate,
+    session: AsyncSession = Depends(get_session),
+) -> DocumentRead:
+    """Ingest a new document into the knowledge base."""
+    doc = await ingest_document(session, payload)
+    return DocumentRead.model_validate(doc)
+
+
+@router.get("/", response_model=DocumentList)
+async def list_documents(
+    skip: int = 0,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+) -> DocumentList:
+    """Return a paginated list of ingested documents."""
+    result = await session.execute(
+        select(Document).offset(skip).limit(limit).order_by(Document.created_at.desc())
+    )
+    docs = result.scalars().all()
+
+    count_result = await session.execute(select(func.count(Document.id)))
+    total = count_result.scalar_one()
+
+    return DocumentList(
+        total=total,
+        items=[DocumentRead.model_validate(d) for d in docs],
+    )
+
+
+@router.get("/{document_id}", response_model=DocumentRead)
+async def get_document(
+    document_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> DocumentRead:
+    """Fetch a single document by ID."""
+    doc = await session.get(Document, document_id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    return DocumentRead.model_validate(doc)
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_document(
+    document_id: int,
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    """Delete a document and its chunks."""
+    doc = await session.get(Document, document_id)
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    # Delete related chunks
+    chunks_res = await session.execute(select(Chunk).where(Chunk.document_id == document_id))
+    for c in chunks_res.scalars().all():
+        await session.delete(c)
+
+    await session.delete(doc)
+    await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
