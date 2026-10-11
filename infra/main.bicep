@@ -32,6 +32,9 @@ param minReplicas int = 0
 @description('Maximum replicas')
 param maxReplicas int = 5
 
+@description('Optional ID of an existing Container Apps Environment to reuse')
+param existingEnvironmentId string = ''
+
 var appName = 'blend'
 var tags = {
   application: appName
@@ -39,8 +42,8 @@ var tags = {
   managedBy: 'bicep'
 }
 
-// ─── Log Analytics workspace ──────────────────────────────────────
-resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+// ─── Log Analytics workspace (only created if no existing environment provided) ──
+resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (empty(existingEnvironmentId)) {
   name: 'log-${appName}-${environmentName}'
   location: location
   tags: tags
@@ -50,8 +53,8 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   }
 }
 
-// ─── Container Apps Environment ───────────────────────────────────
-resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
+// ─── Container Apps Environment (only created if no existing environment provided) 
+resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = if (empty(existingEnvironmentId)) {
   name: 'cae-${appName}-${environmentName}'
   location: location
   tags: tags
@@ -59,12 +62,14 @@ resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
+        customerId: empty(existingEnvironmentId) ? logAnalytics.properties.customerId : ''
+        sharedKey: empty(existingEnvironmentId) ? logAnalytics.listKeys().primarySharedKey : ''
       }
     }
   }
 }
+
+var targetEnvId = empty(existingEnvironmentId) ? caEnv.id : existingEnvironmentId
 
 // ─── Container App Modules ────────────────────────────────────────
 module containerApp 'modules/container-app.bicep' = {
@@ -73,7 +78,7 @@ module containerApp 'modules/container-app.bicep' = {
     name: '${appName}-api'
     location: location
     tags: tags
-    environmentId: caEnv.id
+    environmentId: targetEnvId
     containerImage: containerImage
     geminiApiKey: geminiApiKey
     databaseUrl: databaseUrl
