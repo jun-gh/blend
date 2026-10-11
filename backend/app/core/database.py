@@ -25,12 +25,19 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
+_db_url = settings.database_url
 _engine_kwargs: dict = {"echo": settings.debug}
 
-if settings.database_url.startswith("sqlite"):
+if _db_url.startswith("sqlite"):
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
+elif "asyncpg" in _db_url and "sslmode=" in _db_url:
+    # asyncpg expects 'ssl=require' or ssl context instead of 'sslmode=require'
+    _db_url = (
+        _db_url.replace("sslmode=require", "ssl=require")
+        .replace("sslmode=prefer", "ssl=prefer")
+    )
 
-engine = create_async_engine(settings.database_url, **_engine_kwargs)
+engine = create_async_engine(_db_url, **_engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     bind=engine,
