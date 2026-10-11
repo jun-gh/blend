@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import List
 
 import google.generativeai as genai
 
@@ -33,7 +32,7 @@ based on the provided context documents. Follow these rules:
 
 async def generate_answer(
     query: str,
-    context_chunks: List[SearchResult],
+    context_chunks: list[SearchResult],
     model_name: str | None = None,
 ) -> str:
     """Generate a grounded answer using Gemini."""
@@ -65,7 +64,7 @@ async def generate_answer(
     return response.text.strip()
 
 
-def _build_context(chunks: List[SearchResult]) -> str:
+def _build_context(chunks: list[SearchResult]) -> str:
     """Format chunks into a numbered context block."""
     if not chunks:
         return "No relevant context found."

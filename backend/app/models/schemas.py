@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -14,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class DocumentCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=512)
     content: str = Field(..., min_length=1)
-    source: Optional[str] = None
+    source: str | None = None
 
 
 class DocumentRead(BaseModel):
@@ -22,14 +21,14 @@ class DocumentRead(BaseModel):
 
     id: int
     title: str
-    source: Optional[str]
+    source: str | None
     created_at: datetime
     updated_at: datetime
 
 
 class DocumentList(BaseModel):
     total: int
-    items: List[DocumentRead]
+    items: list[DocumentRead]
 
 
 # ---------------------------------------------------------------------------
@@ -38,8 +37,8 @@ class DocumentList(BaseModel):
 class QueryRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=2000)
     top_k: int = Field(default=5, ge=1, le=20)
-    dense_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    sparse_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    dense_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    sparse_weight: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class SourceChunk(BaseModel):
@@ -52,7 +51,7 @@ class SourceChunk(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-    sources: List[SourceChunk]
+    sources: list[SourceChunk]
     query: str
     model: str
     retrieval_ms: float

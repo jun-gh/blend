@@ -15,7 +15,6 @@ import json
 import logging
 import math
 from dataclasses import dataclass
-from typing import List, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -42,10 +41,10 @@ class SearchResult:
 async def hybrid_search(
     session: AsyncSession,
     query: str,
-    top_k: Optional[int] = None,
-    dense_weight: Optional[float] = None,
-    sparse_weight: Optional[float] = None,
-) -> List[SearchResult]:
+    top_k: int | None = None,
+    dense_weight: float | None = None,
+    sparse_weight: float | None = None,
+) -> list[SearchResult]:
     """Perform hybrid retrieval and return top_k ranked results."""
     top_k = top_k or settings.top_k_retrieval
     dw = dense_weight if dense_weight is not None else settings.dense_weight
@@ -69,9 +68,9 @@ async def hybrid_search(
 
 async def _dense_search(
     session: AsyncSession,
-    query_vec: List[float],
+    query_vec: list[float],
     top_k: int,
-) -> List[dict]:
+) -> list[dict]:
     """Fetch all chunk embeddings and rank by cosine similarity."""
     rows = await session.execute(
         text(
@@ -106,7 +105,7 @@ async def _sparse_search(
     session: AsyncSession,
     query: str,
     top_k: int,
-) -> List[dict]:
+) -> list[dict]:
     """SQLite FTS5 full-text search with fallback to LIKE search."""
     try:
         # Sanitize query for basic FTS5 MATCH
@@ -168,12 +167,12 @@ async def _sparse_search(
 
 
 def _rrf_merge(
-    dense: List[dict],
-    sparse: List[dict],
+    dense: list[dict],
+    sparse: list[dict],
     dense_weight: float,
     sparse_weight: float,
     top_k: int,
-) -> List[SearchResult]:
+) -> list[SearchResult]:
     """Merge ranked lists using Reciprocal Rank Fusion."""
     registry: dict[int, SearchResult] = {}
 
@@ -205,11 +204,11 @@ def _rrf_merge(
     return ranked[:top_k]
 
 
-def _cosine_similarity(a: List[float], b: List[float]) -> float:
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
     """Compute cosine similarity between two float vectors."""
     if len(a) != len(b) or not a or not b:
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(y * y for y in b))
     if norm_a == 0 or norm_b == 0:

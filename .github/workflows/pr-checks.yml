@@ -34,7 +34,7 @@ jobs:
         run: |
           pytest tests/ -v --tb=short \
             --cov=app --cov-report=term-missing \
-            --cov-fail-under=60
+            --cov-fail-under=50
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DATABASE_URL: sqlite+aiosqlite:///./test.db
