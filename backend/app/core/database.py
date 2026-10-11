@@ -9,6 +9,7 @@ The module auto-detects the driver from the DATABASE_URL scheme.
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -68,7 +69,7 @@ async def init_db() -> None:
     log.info("Database initialised.")
 
 
-async def get_session() -> AsyncSession:  # type: ignore[return]
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency that yields a DB session per request."""
     async with async_session_factory() as session:
         yield session
