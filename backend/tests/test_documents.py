@@ -13,6 +13,9 @@ def anyio_backend():
 
 @pytest.mark.anyio
 async def test_document_lifecycle():
+    from app.core.database import init_db
+
+    await init_db()
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Create document
         create_res = await client.post(
