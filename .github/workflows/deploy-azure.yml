@@ -88,6 +88,7 @@ jobs:
             geminiApiKey=${{ secrets.GEMINI_API_KEY }}
             databaseUrl=${{ secrets.DATABASE_URL }}
             existingEnvironmentId="${{ secrets.AZURE_CONTAINER_APP_ENV_ID }}"
+            appLocation="southeastasia"
           failOnStdErr: false
 
       - name: Verify deployment

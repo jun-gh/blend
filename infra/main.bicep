@@ -35,6 +35,9 @@ param maxReplicas int = 5
 @description('Optional ID of an existing Container Apps Environment to reuse')
 param existingEnvironmentId string = ''
 
+@description('Location for the Container App (must match the Container Apps Environment region if reusing one)')
+param appLocation string = location
+
 var appName = 'blend'
 var tags = {
   application: appName
@@ -42,7 +45,7 @@ var tags = {
   managedBy: 'bicep'
 }
 
-// ─── Log Analytics workspace ──
+// ─── Log Analytics workspace (only created if no existing environment provided) ──
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (empty(existingEnvironmentId)) {
   name: 'log-${appName}-${environmentName}'
   location: location
@@ -53,7 +56,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if
   }
 }
 
-// ─── Container Apps Environment ──
+// ─── Container Apps Environment (only created if no existing environment provided) 
 resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = if (empty(existingEnvironmentId)) {
   name: 'cae-${appName}-${environmentName}'
   location: location
@@ -62,32 +65,21 @@ resource caEnv 'Microsoft.App/managedEnvironments@2024-03-01' = if (empty(existi
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: empty(existingEnvironmentId) ? logAnalytics!.properties.customerId : null
-        sharedKey: empty(existingEnvironmentId) ? logAnalytics!.listKeys().primarySharedKey : null
+        customerId: empty(existingEnvironmentId) ? logAnalytics!.properties.customerId : ''
+        sharedKey: empty(existingEnvironmentId) ? logAnalytics!.listKeys().primarySharedKey : ''
       }
     }
   }
 }
 
-// Parse existing environment name and resource group if provided
-var envTokens = !empty(existingEnvironmentId) ? split(existingEnvironmentId, '/') : []
-var existingEnvName = !empty(existingEnvironmentId) ? envTokens[8] : ''
-var existingEnvRg = !empty(existingEnvironmentId) ? envTokens[4] : ''
-
-resource existingEnvRef 'Microsoft.App/managedEnvironments@2024-03-01' existing = if (!empty(existingEnvironmentId)) {
-  name: existingEnvName
-  scope: resourceGroup(existingEnvRg)
-}
-
 var targetEnvId = empty(existingEnvironmentId) ? caEnv.id : existingEnvironmentId
-var targetLocation = empty(existingEnvironmentId) ? location : existingEnvRef.location
 
 // ─── Container App Modules ────────────────────────────────────────
 module containerApp 'modules/container-app.bicep' = {
   name: 'deploy-blend-api'
   params: {
     name: '${appName}-api'
-    location: targetLocation
+    location: appLocation
     tags: tags
     environmentId: targetEnvId
     containerImage: containerImage
