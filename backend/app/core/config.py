@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # App
     app_name: str = "Blend"
     debug: bool = False
-    cors_origins: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    cors_origins: list[str] = ["*"]
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./blend.db"
