@@ -5,14 +5,12 @@ Splits long documents into overlapping chunks suitable for embedding.
 
 from __future__ import annotations
 
-from typing import List
-
 
 def chunk_text(
     text: str,
     chunk_size: int = 512,
     chunk_overlap: int = 64,
-) -> List[str]:
+) -> list[str]:
     """Split *text* into overlapping character-level windows.
 
     Args:
@@ -26,7 +24,7 @@ def chunk_text(
     if not text:
         return []
 
-    chunks: List[str] = []
+    chunks: list[str] = []
     start = 0
     while start < len(text):
         end = start + chunk_size

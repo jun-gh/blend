@@ -7,7 +7,6 @@ Used for both document ingestion and query-time embedding.
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import google.generativeai as genai
 
@@ -19,7 +18,7 @@ if settings.gemini_api_key:
     genai.configure(api_key=settings.gemini_api_key)
 
 
-async def embed_texts(texts: List[str], task_type: str = "retrieval_document") -> List[List[float]]:
+async def embed_texts(texts: list[str], task_type: str = "retrieval_document") -> list[list[float]]:
     """Return a list of embeddings, one per input text.
 
     Args:
@@ -49,7 +48,8 @@ async def embed_texts(texts: List[str], task_type: str = "retrieval_document") -
                 task_type=task_type,
             ),
         )
-        embeddings: List[List[float]] = result["embedding"] if isinstance(result["embedding"][0], list) else [result["embedding"]]
+        raw = result["embedding"]
+        embeddings: list[list[float]] = raw if isinstance(raw[0], list) else [raw]
         log.debug("Embedded %d text(s) → dim=%d", len(texts), len(embeddings[0]))
         return embeddings
     except Exception as exc:  # noqa: BLE001
@@ -57,7 +57,7 @@ async def embed_texts(texts: List[str], task_type: str = "retrieval_document") -
         return [[0.0] * settings.embedding_dimensions for _ in texts]
 
 
-async def embed_query(query: str) -> List[float]:
+async def embed_query(query: str) -> list[float]:
     """Return a single embedding vector for a search query."""
     vectors = await embed_texts([query], task_type="retrieval_query")
     return vectors[0]

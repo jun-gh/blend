@@ -6,7 +6,6 @@ Orchestrates chunking, embedding, and persistence for new documents.
 from __future__ import annotations
 
 import logging
-from typing import List
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +27,7 @@ async def ingest_document(
     Steps:
         1. Persist Document record.
         2. Split content into overlapping chunks.
-        3. Generate embeddings for all chunks via Gemini (or fallback mock embeddings if unconfigured).
+        3. Generate embeddings for all chunks via Gemini (or fallback mock embeddings).
         4. Persist Chunk records (with embeddings).
         5. Populate the FTS5 virtual table.
     """
@@ -38,7 +37,7 @@ async def ingest_document(
     await session.flush()  # obtain doc.id without committing yet
 
     # 2. Chunk text
-    chunks_text: List[str] = chunk_text(payload.content)
+    chunks_text: list[str] = chunk_text(payload.content)
     if not chunks_text:
         log.warning("Document '%s' produced no chunks.", payload.title)
         await session.commit()
@@ -55,12 +54,15 @@ async def ingest_document(
     try:
         vectors = await embed_texts(chunks_text, task_type="retrieval_document")
     except Exception as exc:  # noqa: BLE001
-        log.warning("Embedding generation failed (%s). Generating fallback zeros/mock vectors.", exc)
+        log.warning(
+            "Embedding generation failed (%s). Generating fallback zeros/mock vectors.",
+            exc,
+        )
         vectors = [[0.0] * 768 for _ in chunks_text]
 
     # 4. Persist chunks
-    chunk_objs: List[Chunk] = []
-    for idx, (content, vector) in enumerate(zip(chunks_text, vectors)):
+    chunk_objs: list[Chunk] = []
+    for idx, (content, vector) in enumerate(zip(chunks_text, vectors, strict=False)):
         c = Chunk(document_id=doc.id, chunk_index=idx, content=content)
         c.set_embedding(vector)
         session.add(c)
