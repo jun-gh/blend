@@ -63,7 +63,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'GEMINI_API_KEY', secretRef: 'gemini-api-key' }
             { name: 'DATABASE_URL',   secretRef: 'database-url' }
             { name: 'DEBUG',          value: 'false' }
-            { name: 'CORS_ORIGINS',   value: '*' }
+            { name: 'CORS_ORIGINS',   value: '["*"]' }
           ]
           probes: [
             {
