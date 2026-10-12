@@ -32,15 +32,46 @@ function UploadForm({ onSuccess }) {
   const [content, setContent] = useState('')
   const [source, setSource] = useState('')
   const [loading, setLoading] = useState(false)
+  const [extracting, setExtracting] = useState(false)
   const [error, setError] = useState(null)
   const fileRef = useRef(null)
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const text = await file.text()
-    setContent(text)
-    if (!title) setTitle(file.name.replace(/\.[^/.]+$/, ''))
+
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+    if (!title) setTitle(nameWithoutExt)
+
+    if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+      setExtracting(true)
+      setError(null)
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(`${API_BASE}/api/documents/extract-text`, {
+          method: 'POST',
+          body: formData,
+        })
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.detail || `PDF extraction failed (${res.status})`)
+        }
+        const data = await res.json()
+        setContent(data.text)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setExtracting(false)
+      }
+    } else {
+      try {
+        const text = await file.text()
+        setContent(text)
+      } catch (err) {
+        setError(`Failed to read file: ${err.message}`)
+      }
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -52,7 +83,11 @@ function UploadForm({ onSuccess }) {
       const res = await fetch(`${API_BASE}/api/documents/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), content: content.trim(), source: source.trim() || null }),
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+          source: source.trim() || null,
+        }),
       })
       if (!res.ok) throw new Error(`Upload failed (${res.status})`)
       setTitle('')
@@ -101,13 +136,21 @@ function UploadForm({ onSuccess }) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-400 mb-1">Upload text file</label>
+        <label className="block text-xs font-medium text-gray-400 mb-1">
+          Upload file (.pdf, .txt, .md, .csv, .json)
+          {extracting && (
+            <span className="ml-2 text-brand-400 animate-pulse font-normal">
+              ⏳ Extracting text from PDF…
+            </span>
+          )}
+        </label>
         <input
           ref={fileRef}
           type="file"
-          accept=".txt,.md,.csv,.json"
+          accept=".pdf,.txt,.md,.csv,.json,application/pdf"
           onChange={handleFile}
-          className="text-sm text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-brand-600 file:text-white file:text-xs file:cursor-pointer hover:file:bg-brand-500"
+          disabled={extracting}
+          className="text-sm text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-brand-600 file:text-white file:text-xs file:cursor-pointer hover:file:bg-brand-500 disabled:opacity-50"
         />
       </div>
 
@@ -116,7 +159,7 @@ function UploadForm({ onSuccess }) {
         <textarea
           value={content}
           onChange={e => setContent(e.target.value)}
-          placeholder="Paste your document content here…"
+          placeholder="Paste your document content here or upload a file above…"
           required
           rows={6}
           className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono resize-y"
@@ -125,10 +168,10 @@ function UploadForm({ onSuccess }) {
 
       <button
         type="submit"
-        disabled={loading || !title.trim() || !content.trim()}
+        disabled={loading || extracting || !title.trim() || !content.trim()}
         className="w-full py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? 'Ingesting…' : 'Ingest Document'}
+        {extracting ? 'Extracting PDF…' : loading ? 'Ingesting…' : 'Ingest Document'}
       </button>
     </form>
   )

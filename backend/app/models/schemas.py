@@ -31,6 +31,11 @@ class DocumentList(BaseModel):
     items: list[DocumentRead]
 
 
+class ExtractedTextResponse(BaseModel):
+    text: str
+    filename: str
+
+
 # ---------------------------------------------------------------------------
 # Query / RAG schemas
 # ---------------------------------------------------------------------------
