@@ -46,3 +46,4 @@ Thumbs.db
 
 # ── Azure Bicep ───────────────────────────────────────────────────
 *.bicepparam
+infra/*.json
