@@ -5,9 +5,11 @@ from __future__ import annotations
 import io
 
 import pytest
-from pypdf import PdfWriter
 
 from app.services.extractor import extract_text_from_pdf, extract_text_from_upload
+
+pypdf = pytest.importorskip("pypdf")
+PdfWriter = pypdf.PdfWriter
 
 
 def test_extract_text_from_txt_upload():

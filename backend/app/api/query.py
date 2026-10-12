@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_session
+from app.core.security import require_site_auth
 from app.models.schemas import QueryRequest, QueryResponse, SourceChunk
 from app.services.gemini import generate_answer
 from app.services.hybrid_search import hybrid_search
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_site_auth)])
 
 
 @router.post("/", response_model=QueryResponse)

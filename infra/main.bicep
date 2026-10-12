@@ -26,6 +26,10 @@ param geminiApiKey string
 @secure()
 param databaseUrl string
 
+@description('Optional site access password')
+@secure()
+param sitePassword string = ''
+
 @description('Minimum replicas (0 = scale-to-zero)')
 param minReplicas int = 0
 
@@ -85,6 +89,7 @@ module containerApp 'modules/container-app.bicep' = {
     containerImage: containerImage
     geminiApiKey: geminiApiKey
     databaseUrl: databaseUrl
+    sitePassword: sitePassword
     minReplicas: minReplicas
     maxReplicas: maxReplicas
   }

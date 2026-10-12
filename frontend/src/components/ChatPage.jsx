@@ -26,13 +26,15 @@ function SourceCard({ source }) {
 function Message({ msg }) {
   const isUser = msg.role === 'user'
   return (
-    <div className={`flex gap-3 animate-slide-up ${ isUser ? 'justify-end' : 'justify-start' }`}>
+    <div className={`flex gap-2 sm:gap-3 animate-slide-up ${ isUser ? 'justify-end' : 'justify-start' }`}>
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-xs shrink-0 mt-0.5">⚗️</div>
+        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-600 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0 mt-0.5">
+          B
+        </div>
       )}
-      <div className={`max-w-2xl ${ isUser ? 'max-w-lg' : '' }`}>
+      <div className={`max-w-[85%] sm:max-w-2xl ${ isUser ? 'sm:max-w-lg' : '' }`}>
         <div
-          className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+          className={`px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-xs sm:text-sm leading-relaxed ${
             isUser
               ? 'bg-brand-600 text-white rounded-br-sm'
               : 'bg-gray-800 text-gray-100 rounded-bl-sm'
@@ -41,25 +43,27 @@ function Message({ msg }) {
           {isUser ? (
             msg.content
           ) : (
-            <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
+            <ReactMarkdown className="prose prose-invert prose-xs sm:prose-sm max-w-none">
               {msg.content}
             </ReactMarkdown>
           )}
         </div>
         {msg.sources && msg.sources.length > 0 && (
           <div className="mt-2 space-y-1">
-            <p className="text-xs text-gray-500 px-1">Sources</p>
+            <p className="text-[11px] sm:text-xs text-gray-500 px-1">Sources</p>
             {msg.sources.map(s => <SourceCard key={s.chunk_id} source={s} />)}
           </div>
         )}
         {msg.meta && (
-          <p className="text-xs text-gray-600 mt-1 px-1">
+          <p className="text-[10px] sm:text-xs text-gray-600 mt-1 px-1">
             retrieval {msg.meta.retrieval_ms}ms · generation {msg.meta.generation_ms}ms
           </p>
         )}
       </div>
       {isUser && (
-        <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs shrink-0 mt-0.5">👤</div>
+        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-700 flex items-center justify-center text-[10px] sm:text-xs shrink-0 mt-0.5">
+          👤
+        </div>
       )}
     </div>
   )
@@ -67,9 +71,11 @@ function Message({ msg }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex gap-3 justify-start animate-fade-in">
-      <div className="w-7 h-7 rounded-full bg-brand-600 flex items-center justify-center text-xs shrink-0">⚗️</div>
-      <div className="px-4 py-3 rounded-2xl rounded-bl-sm bg-gray-800">
+    <div className="flex gap-2 sm:gap-3 justify-start animate-fade-in">
+      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-brand-600 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0">
+        B
+      </div>
+      <div className="px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-bl-sm bg-gray-800">
         <div className="flex gap-1 items-center h-4">
           {[0, 1, 2].map(i => (
             <span
@@ -118,11 +124,20 @@ export default function ChatPage() {
     setLoading(true)
 
     try {
+      const token = localStorage.getItem('blend_access_token')
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
       const res = await fetch(`${API_BASE}/api/query/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ query: text, top_k: 5 }),
       })
+      if (res.status === 401) {
+        window.dispatchEvent(new Event('blend-unauthorized'))
+        throw new Error('Session expired. Please re-enter the site password.')
+      }
       if (!res.ok) throw new Error(`API error ${res.status}`)
       const data = await res.json()
       setMessages(prev => [
@@ -151,21 +166,21 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <header className="px-6 py-3 border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm flex items-center justify-between">
-        <h1 className="font-semibold text-gray-200">Chat</h1>
-        <span className="text-xs text-gray-500">Hybrid RAG · Gemini + FTS5</span>
+      <header className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm flex items-center justify-between shrink-0">
+        <h1 className="font-semibold text-sm sm:text-base text-gray-200">Chat</h1>
+        <span className="text-[11px] sm:text-xs text-gray-500">Hybrid RAG · Gemini + FTS5</span>
       </header>
 
       {/* Messages */}
-      <div ref={scrollerRef} className="chat-scroller flex-1 px-6 py-6 space-y-4 relative">
+      <div ref={scrollerRef} className="chat-scroller flex-1 px-3.5 sm:px-6 py-3.5 sm:py-6 space-y-3 sm:space-y-4 relative">
         {messages.map(msg => <Message key={msg.id} msg={msg} />)}
         {loading && <TypingIndicator />}
         {error && (
           <div
             popover="manual"
-            className="[&:is(:popover-open,.\\:popover-open)]:block fixed bottom-20 right-6 bg-red-900/90 text-red-200 text-sm px-4 py-2 rounded-lg border border-red-700 max-w-xs"
+            className="[&:is(:popover-open,.\\:popover-open)]:block fixed bottom-20 right-4 sm:right-6 bg-red-900/90 text-red-200 text-xs sm:text-sm px-3.5 py-2 rounded-lg border border-red-700 max-w-xs z-30"
           >
             ⚠️ {error}
           </div>
@@ -173,7 +188,7 @@ export default function ChatPage() {
         {/* Scroll-to-bottom FAB (scroll-state aware) */}
         <button
           onClick={scrollToBottom}
-          className="scroll-to-bottom sticky bottom-4 float-right mr-2 w-8 h-8 rounded-full bg-brand-600 text-white text-sm shadow-lg hover:bg-brand-500 transition-colors"
+          className="scroll-to-bottom sticky bottom-3 float-right mr-1 sm:mr-2 w-8 h-8 rounded-full bg-brand-600 text-white text-xs sm:text-sm shadow-lg hover:bg-brand-500 transition-colors flex items-center justify-center"
           aria-label="Scroll to bottom"
         >
           ↓
@@ -181,22 +196,22 @@ export default function ChatPage() {
       </div>
 
       {/* Input bar */}
-      <div className="px-6 py-4 border-t border-gray-800 bg-gray-900/80 backdrop-blur-sm">
-        <div className="flex gap-3 max-w-4xl mx-auto">
+      <div className="px-3 sm:px-6 py-2.5 sm:py-4 border-t border-gray-800 bg-gray-900/80 backdrop-blur-sm shrink-0">
+        <div className="flex gap-2 sm:gap-3 max-w-4xl mx-auto">
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything about your documents… (Enter to send, Shift+Enter for newline)"
+            placeholder="Ask anything about your documents… (Enter to send)"
             rows={1}
-            className="flex-1 resize-none bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
-            style={{ minHeight: '48px', maxHeight: '160px', overflowY: 'auto' }}
+            className="flex-1 resize-none bg-gray-800 border border-gray-700 rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-base sm:text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+            style={{ minHeight: '44px', maxHeight: '140px', overflowY: 'auto' }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || loading}
-            className="px-5 py-3 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+            className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-brand-600 text-white text-xs sm:text-sm font-medium hover:bg-brand-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0 flex items-center justify-center min-w-[56px] sm:min-w-[64px]"
           >
             {loading ? '⏳' : 'Send'}
           </button>
