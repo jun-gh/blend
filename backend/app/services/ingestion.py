@@ -10,6 +10,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.orm import Chunk, Document
 from app.models.schemas import DocumentCreate
 from app.services.chunker import chunk_text
@@ -71,7 +72,9 @@ async def ingest_document(
     await session.flush()
 
     # 5. Populate FTS5 virtual table (SQLite only)
-    is_sqlite = settings.database_url.startswith("sqlite") or "sqlite" in str(session.bind.url if session.bind else "")
+    db_url = settings.database_url
+    bind_url = str(session.bind.url) if session.bind else ""
+    is_sqlite = db_url.startswith("sqlite") or "sqlite" in bind_url
     if is_sqlite:
         await _ensure_fts_table(session)
         for c in chunk_objs:

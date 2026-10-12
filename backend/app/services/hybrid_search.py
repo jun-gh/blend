@@ -107,7 +107,9 @@ async def _sparse_search(
     top_k: int,
 ) -> list[dict]:
     """SQLite FTS5 full-text search with fallback to LIKE search."""
-    is_sqlite = settings.database_url.startswith("sqlite") or "sqlite" in str(session.bind.url if session.bind else "")
+    db_url = settings.database_url
+    bind_url = str(session.bind.url) if session.bind else ""
+    is_sqlite = db_url.startswith("sqlite") or "sqlite" in bind_url
 
     if is_sqlite:
         try:
