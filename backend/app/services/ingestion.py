@@ -10,6 +10,7 @@ import logging
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.orm import Chunk, Document
 from app.models.schemas import DocumentCreate
 from app.services.chunker import chunk_text
@@ -70,16 +71,18 @@ async def ingest_document(
 
     await session.flush()
 
-    # 5. Populate FTS5 virtual table (SQLite)
-    await _ensure_fts_table(session)
-    for c in chunk_objs:
-        try:
-            await session.execute(
-                text("INSERT INTO chunks_fts(rowid, content) VALUES (:rid, :content)"),
-                {"rid": c.id, "content": c.content},
-            )
-        except Exception as exc:  # noqa: BLE001
-            log.warning("Could not insert into chunks_fts: %s", exc)
+    # 5. Populate FTS5 virtual table (SQLite only)
+    is_sqlite = settings.database_url.startswith("sqlite")
+    if is_sqlite:
+        await _ensure_fts_table(session)
+        for c in chunk_objs:
+            try:
+                await session.execute(
+                    text("INSERT INTO chunks_fts(rowid, content) VALUES (:rid, :content)"),
+                    {"rid": c.id, "content": c.content},
+                )
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Could not insert into chunks_fts: %s", exc)
 
     await session.commit()
     log.info("Document id=%d ingested successfully.", doc.id)
