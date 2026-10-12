@@ -1,4 +1,4 @@
-# ⚗️ Blend — Hybrid Search RAG Pipeline
+# Blend — Hybrid Search RAG Pipeline
 
 > A full-stack Retrieval-Augmented Generation system that combines **dense vector search** (semantic similarity) with **sparse keyword/FTS search** (BM25) to achieve superior retrieval quality over either technique alone.
 
