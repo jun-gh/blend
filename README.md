@@ -141,7 +141,7 @@ blend/
 ### 1. Clone & configure
 
 ```bash
-git clone https://github.com/YOUR_ORG/blend.git
+git clone https://github.com/jun-gh/blend.git
 cd blend
 ```
 
@@ -151,8 +151,7 @@ cd blend
 cd backend
 
 # Create virtual environment
-python -m venv .venv || python3.11 -m venv .venv
-
+python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 # Install dependencies
@@ -166,8 +165,8 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-API is now live at **http://localhost:8000**  
-Interactive docs: **http://localhost:8000/docs**
+API is now live at **https://blend-api.ambitiousflower-4ef79cd6.southeastasia.azurecontainerapps.io**  
+Interactive docs: **https://blend-api.ambitiousflower-4ef79cd6.southeastasia.azurecontainerapps.io/docs**
 
 ### 3. Frontend
 
@@ -181,7 +180,7 @@ npm install
 npm run dev
 ```
 
-Frontend is now at **http://localhost:5173**
+Frontend is now and password protected at **https://blend-theta.vercel.app**
 
 ---
 
