@@ -107,30 +107,31 @@ async def _sparse_search(
     top_k: int,
 ) -> list[dict]:
     """SQLite FTS5 full-text search with fallback to LIKE search."""
-    try:
-        # Sanitize query for basic FTS5 MATCH
-        clean_query = "".join(c for c in query if c.isalnum() or c.isspace()).strip()
-        if not clean_query:
-            clean_query = query.strip()
+    is_sqlite = settings.database_url.startswith("sqlite") or "sqlite" in str(session.bind.url if session.bind else "")
 
-        rows = await session.execute(
-            text(
-                """
-                SELECT c.id, c.document_id, c.content, d.title,
-                       bm25(chunks_fts) AS bm25_score
-                FROM chunks_fts
-                JOIN chunks c ON c.id = chunks_fts.rowid
-                JOIN documents d ON d.id = c.document_id
-                WHERE chunks_fts MATCH :q
-                ORDER BY bm25_score
-                LIMIT :k
-                """
-            ),
-            {"q": clean_query, "k": top_k},
-        )
-        results = []
-        for row in rows:
-            results.append(
+    if is_sqlite:
+        try:
+            # Sanitize query for basic FTS5 MATCH
+            clean_query = "".join(c for c in query if c.isalnum() or c.isspace()).strip()
+            if not clean_query:
+                clean_query = query.strip()
+
+            rows = await session.execute(
+                text(
+                    """
+                    SELECT c.id, c.document_id, c.content, d.title,
+                           bm25(chunks_fts) AS bm25_score
+                    FROM chunks_fts
+                    JOIN chunks c ON c.id = chunks_fts.rowid
+                    JOIN documents d ON d.id = c.document_id
+                    WHERE chunks_fts MATCH :q
+                    ORDER BY bm25_score
+                    LIMIT :k
+                    """
+                ),
+                {"q": clean_query, "k": top_k},
+            )
+            return [
                 {
                     "chunk_id": row.id,
                     "document_id": row.document_id,
@@ -138,10 +139,39 @@ async def _sparse_search(
                     "content": row.content,
                     "score": abs(float(row.bm25_score)),
                 }
-            )
-        return results
-    except Exception as exc:  # noqa: BLE001
-        log.warning("FTS search failed or table absent, falling back to LIKE: %s", exc)
+                for row in rows
+            ]
+        except Exception as exc:  # noqa: BLE001
+            log.warning("FTS search failed: %s", exc)
+            await session.rollback()
+
+    # Fallback / PostgreSQL search using LIKE / ILIKE
+    try:
+        rows = await session.execute(
+            text(
+                """
+                SELECT c.id, c.document_id, c.content, d.title, 1.0 AS score
+                FROM chunks c
+                JOIN documents d ON d.id = c.document_id
+                WHERE c.content ILIKE :q
+                LIMIT :k
+                """
+            ),
+            {"q": f"%{query}%", "k": top_k},
+        )
+        return [
+            {
+                "chunk_id": row.id,
+                "document_id": row.document_id,
+                "document_title": row.title,
+                "content": row.content,
+                "score": float(row.score),
+            }
+            for row in rows
+        ]
+    except Exception:
+        # SQLite doesn't have ILIKE, use LIKE
+        await session.rollback()
         rows = await session.execute(
             text(
                 """
