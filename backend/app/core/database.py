@@ -30,12 +30,21 @@ _engine_kwargs: dict = {"echo": settings.debug}
 
 if _db_url.startswith("sqlite"):
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
-elif "asyncpg" in _db_url and "sslmode=" in _db_url:
-    # asyncpg expects 'ssl=require' or ssl context instead of 'sslmode=require'
-    _db_url = (
-        _db_url.replace("sslmode=require", "ssl=require")
-        .replace("sslmode=prefer", "ssl=prefer")
-    )
+elif "asyncpg" in _db_url:
+    # asyncpg does not support libpq query parameters like channel_binding, sslmode, etc.
+    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+    parsed = urlparse(_db_url)
+    if parsed.query:
+        query_params = parse_qs(parsed.query)
+        # asyncpg recognizes ssl (or sslmode transformed to ssl)
+        clean_params = {}
+        for k, v in query_params.items():
+            if k in ("sslmode", "ssl"):
+                clean_params["ssl"] = ["require" if "require" in v[0] else v[0]]
+            elif k not in ("channel_binding", "target_session_attrs", "options"):
+                clean_params[k] = v
+        _db_url = urlunparse(parsed._replace(query=urlencode(clean_params, doseq=True)))
 
 engine = create_async_engine(_db_url, **_engine_kwargs)
 
