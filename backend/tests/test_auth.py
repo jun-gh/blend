@@ -6,6 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import settings
+from app.core.database import init_db
 from app.core.security import (
     create_access_token,
     verify_access_token,
@@ -46,6 +47,7 @@ def test_token_invalidation_on_password_change():
 
 @pytest.mark.anyio
 async def test_auth_status_and_verification_flow():
+    await init_db()
     original_pwd = settings.site_password
     try:
         settings.site_password = "production-passcode"
