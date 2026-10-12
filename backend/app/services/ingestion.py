@@ -72,9 +72,7 @@ async def ingest_document(
     await session.flush()
 
     # 5. Populate FTS5 virtual table (SQLite only)
-    db_url = settings.database_url
-    bind_url = str(session.bind.url) if session.bind else ""
-    is_sqlite = db_url.startswith("sqlite") or "sqlite" in bind_url
+    is_sqlite = settings.database_url.startswith("sqlite")
     if is_sqlite:
         await _ensure_fts_table(session)
         for c in chunk_objs:
