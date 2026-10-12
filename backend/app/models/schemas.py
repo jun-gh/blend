@@ -61,3 +61,19 @@ class QueryResponse(BaseModel):
     model: str
     retrieval_ms: float
     generation_ms: float
+
+
+# ---------------------------------------------------------------------------
+# Auth schemas
+# ---------------------------------------------------------------------------
+class AuthStatusResponse(BaseModel):
+    required: bool
+
+
+class PasswordVerifyRequest(BaseModel):
+    password: str = Field(..., min_length=1)
+
+
+class AuthTokenResponse(BaseModel):
+    token: str
+    expires_at: int

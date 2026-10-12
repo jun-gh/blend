@@ -25,6 +25,7 @@ coverage.xml
 *.db
 *.db-shm
 *.db-wal
+*.db-journal
 
 # ── Node / Frontend ───────────────────────────────────────────────
 node_modules/

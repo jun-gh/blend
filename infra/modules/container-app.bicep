@@ -23,6 +23,10 @@ param geminiApiKey string
 @secure()
 param databaseUrl string
 
+@description('Optional site access password')
+@secure()
+param sitePassword string = ''
+
 @description('Scale-to-zero: set minReplicas=0')
 param minReplicas int = 0
 
@@ -48,6 +52,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         { name: 'gemini-api-key', value: geminiApiKey }
         { name: 'database-url',   value: databaseUrl }
+        { name: 'site-password',  value: sitePassword }
       ]
     }
     template: {
@@ -62,6 +67,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             { name: 'GEMINI_API_KEY', secretRef: 'gemini-api-key' }
             { name: 'DATABASE_URL',   secretRef: 'database-url' }
+            { name: 'SITE_PASSWORD',  secretRef: 'site-password' }
             { name: 'DEBUG',          value: 'false' }
             { name: 'CORS_ORIGINS',   value: '["*"]' }
           ]

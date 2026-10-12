@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     app_name: str = "Blend"
     debug: bool = False
     cors_origins: list[str] = ["*"]
+    site_password: str = Field(default="", alias="SITE_PASSWORD")
+    token_expiry_days: int = 7
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./blend.db"

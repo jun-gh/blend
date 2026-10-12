@@ -4,19 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Blend brand palette
+        // Blend brand palette (Dark Gray theme)
         brand: {
-          50:  '#f0f4ff',
-          100: '#dde7ff',
-          200: '#c3d2ff',
-          300: '#9db1ff',
-          400: '#7585ff',
-          500: '#5c63fa',
-          600: '#4a43ef',
-          700: '#3d34d4',
-          800: '#322cab',
-          900: '#2d2a88',
-          950: '#1c1a52',
+          50:  '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#e5e7eb',
+          500: '#4b5563',
+          600: '#374151',
+          700: '#1f2937',
+          800: '#181e29',
+          900: '#111827',
+          950: '#0b0f17',
         },
       },
       fontFamily: {

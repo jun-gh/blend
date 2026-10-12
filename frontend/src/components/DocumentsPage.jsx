@@ -2,6 +2,22 @@ import React, { useState, useEffect, useRef } from 'react'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
+function getAuthHeaders(extraHeaders = {}) {
+  const token = localStorage.getItem('blend_access_token')
+  return {
+    ...extraHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
+function handleAuthResponse(res) {
+  if (res.status === 401) {
+    window.dispatchEvent(new Event('blend-unauthorized'))
+    throw new Error('Session expired. Please re-enter the site password.')
+  }
+  return res
+}
+
 function DocumentCard({ doc, onDelete }) {
   return (
     <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-brand-600/50 transition-colors animate-fade-in">
@@ -51,8 +67,10 @@ function UploadForm({ onSuccess }) {
         formData.append('file', file)
         const res = await fetch(`${API_BASE}/api/documents/extract-text`, {
           method: 'POST',
+          headers: getAuthHeaders(),
           body: formData,
         })
+        handleAuthResponse(res)
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}))
           throw new Error(errData.detail || `PDF extraction failed (${res.status})`)
@@ -82,13 +100,14 @@ function UploadForm({ onSuccess }) {
     try {
       const res = await fetch(`${API_BASE}/api/documents/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           title: title.trim(),
           content: content.trim(),
           source: source.trim() || null,
         }),
       })
+      handleAuthResponse(res)
       if (!res.ok) throw new Error(`Upload failed (${res.status})`)
       setTitle('')
       setContent('')
@@ -103,11 +122,11 @@ function UploadForm({ onSuccess }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-800/60 rounded-2xl border border-gray-700 p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-gray-800/60 rounded-xl sm:rounded-2xl border border-gray-700 p-4 sm:p-6 space-y-4">
       <h2 className="text-base font-semibold text-gray-200">Add Document</h2>
 
       {error && (
-        <p className="text-sm text-red-400 bg-red-900/20 rounded-lg px-3 py-2 border border-red-800">
+        <p className="text-xs sm:text-sm text-red-400 bg-red-900/20 rounded-lg px-3 py-2 border border-red-800">
           {error}
         </p>
       )}
@@ -120,7 +139,7 @@ function UploadForm({ onSuccess }) {
           onChange={e => setTitle(e.target.value)}
           placeholder="My Research Paper"
           required
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base sm:text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
         />
       </div>
 
@@ -131,7 +150,7 @@ function UploadForm({ onSuccess }) {
           value={source}
           onChange={e => setSource(e.target.value)}
           placeholder="https://..."
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base sm:text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
         />
       </div>
 
@@ -150,7 +169,7 @@ function UploadForm({ onSuccess }) {
           accept=".pdf,.txt,.md,.csv,.json,application/pdf"
           onChange={handleFile}
           disabled={extracting}
-          className="text-sm text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-brand-600 file:text-white file:text-xs file:cursor-pointer hover:file:bg-brand-500 disabled:opacity-50"
+          className="text-xs sm:text-sm text-gray-400 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-brand-600 file:text-white file:text-xs file:cursor-pointer hover:file:bg-brand-500 disabled:opacity-50"
         />
       </div>
 
@@ -162,7 +181,7 @@ function UploadForm({ onSuccess }) {
           placeholder="Paste your document content here or upload a file above…"
           required
           rows={6}
-          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono resize-y"
+          className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-base sm:text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 font-mono resize-y"
         />
       </div>
 
@@ -181,16 +200,22 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [mobileTab, setMobileTab] = useState('upload')
 
   const fetchDocs = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/documents/?limit=50`)
+      const res = await fetch(`${API_BASE}/api/documents/?limit=50`, {
+        headers: getAuthHeaders(),
+      })
+      handleAuthResponse(res)
       if (res.ok) {
         const data = await res.json()
         setDocs(data.items)
         setTotal(data.total)
       }
+    } catch {
+      // Handled
     } finally {
       setLoading(false)
     }
@@ -200,27 +225,76 @@ export default function DocumentsPage() {
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this document and all its chunks?')) return
-    await fetch(`${API_BASE}/api/documents/${id}`, { method: 'DELETE' })
-    fetchDocs()
+    try {
+      const res = await fetch(`${API_BASE}/api/documents/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      })
+      handleAuthResponse(res)
+      fetchDocs()
+    } catch {
+      // Handled
+    }
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full overflow-hidden">
+      {/* Mobile Tab Switcher */}
+      <div className="lg:hidden flex border-b border-gray-800 bg-gray-900/90 p-2 shrink-0 gap-2">
+        <button
+          onClick={() => setMobileTab('upload')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            mobileTab === 'upload'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'bg-gray-800/80 text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <span>➕</span>
+          <span>Add Document</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('list')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 ${
+            mobileTab === 'list'
+              ? 'bg-brand-600 text-white shadow-sm'
+              : 'bg-gray-800/80 text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          <span>📂</span>
+          <span>Documents ({total})</span>
+        </button>
+      </div>
+
       {/* Left: Upload form */}
-      <div className="w-96 shrink-0 border-r border-gray-800 p-6 overflow-y-auto">
-        <UploadForm onSuccess={fetchDocs} />
+      <div
+        className={`w-full lg:w-96 shrink-0 lg:border-r border-gray-800 p-4 sm:p-6 overflow-y-auto ${
+          mobileTab === 'upload' ? 'block' : 'hidden lg:block'
+        }`}
+      >
+        <UploadForm
+          onSuccess={() => {
+            fetchDocs()
+            setMobileTab('list')
+          }}
+        />
       </div>
 
       {/* Right: Document list */}
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div
+        className={`flex-1 p-4 sm:p-6 overflow-y-auto ${
+          mobileTab === 'list' ? 'block' : 'hidden lg:block'
+        }`}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-semibold text-gray-200">
+          <h1 className="font-semibold text-gray-200 text-base sm:text-lg">
             Knowledge Base
-            <span className="ml-2 text-sm font-normal text-gray-500">{total} document{total !== 1 ? 's' : ''}</span>
+            <span className="ml-2 text-xs sm:text-sm font-normal text-gray-500">
+              {total} document{total !== 1 ? 's' : ''}
+            </span>
           </h1>
           <button
             onClick={fetchDocs}
-            className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+            className="text-xs text-gray-400 hover:text-gray-200 transition-colors px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-750"
           >
             ↺ Refresh
           </button>

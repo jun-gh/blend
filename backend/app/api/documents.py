@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.security import require_site_auth
 from app.models.orm import Chunk, Document
 from app.models.schemas import (
     DocumentCreate,
@@ -26,7 +27,7 @@ from app.models.schemas import (
 from app.services.extractor import extract_text_from_upload
 from app.services.ingestion import ingest_document
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_site_auth)])
 
 
 @router.post("/", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)

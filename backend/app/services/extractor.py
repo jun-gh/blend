@@ -5,14 +5,20 @@ from __future__ import annotations
 import io
 import logging
 
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
-
 log = logging.getLogger(__name__)
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
     """Extract readable text from PDF bytes using pypdf."""
+    try:
+        from pypdf import PdfReader
+        from pypdf.errors import PdfReadError
+    except ImportError as err:
+        log.warning("pypdf is not installed: %s", err)
+        raise ValueError(
+            "PDF extraction requires 'pypdf'. Please run 'pip install pypdf'."
+        ) from err
+
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         pages_text: list[str] = []
