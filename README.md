@@ -190,7 +190,7 @@ npm install
 npm run dev
 ```
 
-Frontend is now live at **https://blend-theta.vercel.app**
+Frontend is now live at **https://blend-jmco.vercel.app**
 
 ---
 
