@@ -8,6 +8,7 @@ The module auto-detects the driver from the DATABASE_URL scheme.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import AsyncGenerator
 
@@ -74,18 +75,27 @@ async def init_db() -> None:
         await conn.run_sync(Base.metadata.create_all)
         from sqlalchemy import text
 
-        try:
-            await conn.execute(
-                text("ALTER TABLE documents ADD COLUMN session_id VARCHAR(64) DEFAULT '' NOT NULL")
-            )
+        if settings.database_url.startswith("sqlite"):
+            with contextlib.suppress(Exception):
+                await conn.execute(
+                    text(
+                        "ALTER TABLE documents ADD COLUMN "
+                        "session_id VARCHAR(64) DEFAULT '' NOT NULL"
+                    )
+                )
+        else:
             await conn.execute(
                 text(
-                    "CREATE INDEX IF NOT EXISTS ix_documents_session_id ON documents (session_id)"
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS "
+                    "session_id VARCHAR(64) DEFAULT '' NOT NULL"
                 )
             )
-        except Exception:
-            # Column already exists
-            pass
+
+        await conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS ix_documents_session_id ON documents (session_id)"
+            )
+        )
 
         if settings.database_url.startswith("sqlite"):
             await conn.execute(
