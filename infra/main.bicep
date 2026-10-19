@@ -57,6 +57,12 @@ param topKRetrieval string = '10'
 @description('Top-K chunks sent to Gemini LLM context window')
 param topKContext string = '5'
 
+@description('Days before session and documents expire')
+param sessionExpiryDays int = 7
+
+@description('Maximum documents allowed per session')
+param maxDocumentsPerSession int = 10
+
 @description('Optional ID of an existing Container Apps Environment to reuse')
 param existingEnvironmentId string = ''
 
@@ -120,6 +126,8 @@ module containerApp 'modules/container-app.bicep' = {
     sparseWeight: sparseWeight
     topKRetrieval: topKRetrieval
     topKContext: topKContext
+    sessionExpiryDays: sessionExpiryDays
+    maxDocumentsPerSession: maxDocumentsPerSession
   }
 }
 

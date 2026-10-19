@@ -26,6 +26,8 @@ SYNC_KEYS = [
     "TOP_K_RETRIEVAL",
     "TOP_K_CONTEXT",
     "SITE_PASSWORD",
+    "SESSION_EXPIRY_DAYS",
+    "MAX_DOCUMENTS_PER_SESSION",
 ]
 
 
@@ -78,6 +80,8 @@ def sync() -> None:
         "TOP_K_RETRIEVAL": ("topKRetrieval", "string"),
         "TOP_K_CONTEXT": ("topKContext", "string"),
         "SITE_PASSWORD": ("sitePassword", "string"),
+        "SESSION_EXPIRY_DAYS": ("sessionExpiryDays", "int"),
+        "MAX_DOCUMENTS_PER_SESSION": ("maxDocumentsPerSession", "int"),
     }
 
     for bicep_file in (MAIN_BICEP, CONTAINER_APP_BICEP):

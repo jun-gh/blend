@@ -86,12 +86,13 @@ blend/
 │   │   ├── core/
 │   │   │   ├── config.py        # Pydantic v2 BaseSettings
 │   │   │   ├── database.py      # Async SQLAlchemy engine & sessions
-│   │   │   └── security.py      # API-key dependency
+│   │   │   ├── security.py      # API-key & password protection
+│   │   │   └── session.py       # Anonymous session ID, quotas & auto-pruning
 │   │   ├── models/
 │   │   │   ├── orm.py           # Document & Chunk SQLAlchemy models
 │   │   │   └── schemas.py       # Pydantic v2 request/response schemas
 │   │   ├── services/
-│   │   │   ├── embedding.py     # Gemini embedding wrapper (async)
+│   │   │   ├── embedding.py     # Gemini embedding wrapper (async with retries)
 │   │   │   ├── chunker.py       # Sliding-window text chunker
 │   │   │   ├── hybrid_search.py # RRF merger + dense/sparse retrieval
 │   │   │   ├── ingestion.py     # Full ingestion pipeline
@@ -100,22 +101,28 @@ blend/
 │   │   │   └── server.py        # MCP stdio server exposing blend_search tool
 │   │   └── api/
 │   │       ├── health.py        # GET /health/
-│   │       ├── documents.py     # CRUD /api/documents/
-│   │       └── query.py         # POST /api/query/
+│   │       ├── documents.py     # CRUD /api/documents/ with session isolation
+│   │       └── query.py         # POST /api/query/ with session filter
 │   ├── Dockerfile               # Multi-stage build (builder + runtime)
 │   ├── requirements.txt
 │   ├── .env.example
 │   └── tests/
 │       ├── test_health.py
-│       └── test_hybrid_search.py
+│       ├── test_hybrid_search.py
+│       ├── test_auth.py
+│       └── test_sessions.py
 ├── frontend/
+│   ├── public/
+│   │   └── favicon.svg          # Branded capital 'B' SVG favicon
 │   ├── src/
-│   │   ├── App.jsx              # Router + sidebar layout
+│   │   ├── App.jsx              # Router, sidebar & auth lock screen
 │   │   ├── main.jsx
 │   │   ├── index.css            # Tailwind + scroll-state CSS
+│   │   ├── utils/
+│   │   │   └── session.js       # 7-day browser session ID & quota manager
 │   │   └── components/
 │   │       ├── ChatPage.jsx     # Chat UI with hybrid search results
-│   │       └── DocumentsPage.jsx # Document upload & management
+│   │       └── DocumentsPage.jsx # Document upload & session quota management
 │   ├── package.json
 │   ├── tailwind.config.js
 │   ├── postcss.config.js
@@ -310,6 +317,11 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 ### Optional Password Protection
 - Configure `SITE_PASSWORD` in `.env` to protect the app. If left empty, blank, or `"null"`, authentication is seamlessly disabled for open development and demo access.
 
+### Session-Based Documents & Privacy
+- **Anonymous Sessions**: Users only see, query, and manage documents uploaded within their active browser session without needing user logins.
+- **Quota & Protection**: Each session is limited to a maximum of 10 documents (`MAX_DOCUMENTS_PER_SESSION`, configurable in `.env`). The UI displays real-time quota usage and provides a 1-click **Start New Session** reset.
+- **Automatic Expiry & Pruning**: Documents and their derived chunks automatically expire after 7 days (`SESSION_EXPIRY_DAYS`, configurable in `.env`), with automatic database pruning of expired documents and SQLite FTS index entries.
+
 ### Syncing Local .env to Production Bicep
 When deploying via GitHub Actions, Azure Container Apps provisions the container with settings declared in `infra/main.bicep`. To ensure your custom models, search weights, and site password from your local `.env` are permanently preserved across future deployments without getting overwritten, run:
 
@@ -330,6 +342,8 @@ This reads non-secret settings from `backend/.env`, updates `infra/app.env`, and
 - `TOP_K_RETRIEVAL`
 - `TOP_K_CONTEXT`
 - `SITE_PASSWORD`
+- `SESSION_EXPIRY_DAYS`
+- `MAX_DOCUMENTS_PER_SESSION`
 
 *(Sensitive credentials like `GEMINI_API_KEY` and `DATABASE_URL` remain strictly secured in GitHub Secrets and are never synced to git).*
 
@@ -340,20 +354,22 @@ The MCP server exposes `blend_search` as a tool that any MCP-compatible AI clien
 
 ## Environment Variables
 
-| Variable               | Default                             | Description                          |
-|------------------------|-------------------------------------|--------------------------------------|
-| `DATABASE_URL`         | `sqlite+aiosqlite:///./blend.db`    | Database connection string           |
-| `GEMINI_API_KEY`       | —                                   | **Required.** Google AI API key      |
-| `GEMINI_EMBED_MODEL`   | `models/text-embedding-004`         | Embedding model                      |
-| `GEMINI_CHAT_MODEL`    | `models/gemini-2.0-flash`           | Chat/generation model (dynamic)      |
-| `SITE_PASSWORD`        | —                                   | Optional visitor password protection |
-| `EMBEDDING_DIMENSIONS` | `768`                               | Vector dimensionality                |
-| `DENSE_WEIGHT`         | `0.6`                               | RRF dense score weight               |
-| `SPARSE_WEIGHT`        | `0.4`                               | RRF sparse score weight              |
-| `TOP_K_RETRIEVAL`      | `10`                                | Chunks retrieved per query           |
-| `TOP_K_CONTEXT`        | `5`                                 | Chunks sent to LLM                   |
-| `DEBUG`                | `false`                             | Enable SQL echo & verbose logging    |
-| `CORS_ORIGINS`         | `["http://localhost:5173"]`         | Allowed CORS origins (JSON array)    |
+| Variable                    | Default                             | Description                          |
+|-----------------------------|-------------------------------------|--------------------------------------|
+| `DATABASE_URL`              | `sqlite+aiosqlite:///./blend.db`    | Database connection string           |
+| `GEMINI_API_KEY`            | —                                   | **Required.** Google AI API key      |
+| `GEMINI_EMBED_MODEL`        | `models/text-embedding-004`         | Embedding model                      |
+| `GEMINI_CHAT_MODEL`         | `models/gemini-2.0-flash`           | Chat/generation model (dynamic)      |
+| `SITE_PASSWORD`             | —                                   | Optional visitor password protection |
+| `SESSION_EXPIRY_DAYS`       | `7`                                 | Days before session docs expire      |
+| `MAX_DOCUMENTS_PER_SESSION` | `10`                                | Max documents allowed per session    |
+| `EMBEDDING_DIMENSIONS`      | `768`                               | Vector dimensionality                |
+| `DENSE_WEIGHT`              | `0.6`                               | RRF dense score weight               |
+| `SPARSE_WEIGHT`             | `0.4`                               | RRF sparse score weight              |
+| `TOP_K_RETRIEVAL`           | `10`                                | Chunks retrieved per query           |
+| `TOP_K_CONTEXT`             | `5`                                 | Chunks sent to LLM                   |
+| `DEBUG`                     | `false`                             | Enable SQL echo & verbose logging    |
+| `CORS_ORIGINS`              | `["http://localhost:5173"]`         | Allowed CORS origins (JSON array)    |
 
 ---
 

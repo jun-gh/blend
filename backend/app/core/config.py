@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]
     site_password: str | None = Field(default="", alias="SITE_PASSWORD")
     token_expiry_days: int = 7
+    session_expiry_days: int = Field(default=7, alias="SESSION_EXPIRY_DAYS")
+    max_documents_per_session: int = Field(default=10, alias="MAX_DOCUMENTS_PER_SESSION")
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./blend.db"

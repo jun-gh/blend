@@ -22,12 +22,14 @@ class DocumentRead(BaseModel):
     id: int
     title: str
     source: str | None
+    session_id: str = ""
     created_at: datetime
     updated_at: datetime
 
 
 class DocumentList(BaseModel):
     total: int
+    max_documents: int = 10
     items: list[DocumentRead]
 
 
@@ -44,6 +46,7 @@ class QueryRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     dense_weight: float | None = Field(default=None, ge=0.0, le=1.0)
     sparse_weight: float | None = Field(default=None, ge=0.0, le=1.0)
+    session_id: str | None = None
 
 
 class SourceChunk(BaseModel):

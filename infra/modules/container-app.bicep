@@ -53,6 +53,12 @@ param topKRetrieval string = '10'
 @description('Top-K chunks sent to Gemini LLM context window')
 param topKContext string = '5'
 
+@description('Days before session and documents expire')
+param sessionExpiryDays int = 7
+
+@description('Maximum documents allowed per session')
+param maxDocumentsPerSession int = 10
+
 resource ca 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
@@ -96,6 +102,8 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'SPARSE_WEIGHT',        value: sparseWeight }
             { name: 'TOP_K_RETRIEVAL',      value: topKRetrieval }
             { name: 'TOP_K_CONTEXT',        value: topKContext }
+            { name: 'SESSION_EXPIRY_DAYS',  value: string(sessionExpiryDays) }
+            { name: 'MAX_DOCUMENTS_PER_SESSION', value: string(maxDocumentsPerSession) }
             { name: 'DEBUG',          value: 'false' }
             { name: 'CORS_ORIGINS',   value: '["*"]' }
           ]

@@ -23,6 +23,9 @@ class Document(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     source: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    session_id: Mapped[str] = mapped_column(
+        String(64), index=True, nullable=False, default=""
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
