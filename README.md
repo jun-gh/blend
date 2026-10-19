@@ -121,10 +121,13 @@ blend/
 │   ├── postcss.config.js
 │   └── vite.config.js
 ├── infra/
+│   ├── app.env                  # Synced non-secret app configuration
 │   ├── main.bicep               # Root Bicep template
 │   └── modules/
 │       ├── container-app.bicep  # Azure Container App + scaling rules
 │       └── container-registry.bicep  # Optional ACR module
+├── scripts/
+│   └── sync_env.py              # Syncs backend/.env settings to Bicep & infra/app.env
 └── README.md
 ```
 
@@ -306,6 +309,29 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 
 ### Optional Password Protection
 - Configure `SITE_PASSWORD` in `.env` to protect the app. If left empty, blank, or `"null"`, authentication is seamlessly disabled for open development and demo access.
+
+### Syncing Local .env to Production Bicep
+When deploying via GitHub Actions, Azure Container Apps provisions the container with settings declared in `infra/main.bicep`. To ensure your custom models, search weights, and site password from your local `.env` are permanently preserved across future deployments without getting overwritten, run:
+
+```bash
+python3 scripts/sync_env.py
+# or from the frontend directory:
+npm run sync-env
+```
+
+This reads non-secret settings from `backend/.env`, updates `infra/app.env`, and syncs default parameters across `infra/main.bicep` and `infra/modules/container-app.bicep`.
+
+**Variables synced:**
+- `GEMINI_CHAT_MODEL`
+- `GEMINI_EMBED_MODEL`
+- `EMBEDDING_DIMENSIONS`
+- `DENSE_WEIGHT`
+- `SPARSE_WEIGHT`
+- `TOP_K_RETRIEVAL`
+- `TOP_K_CONTEXT`
+- `SITE_PASSWORD`
+
+*(Sensitive credentials like `GEMINI_API_KEY` and `DATABASE_URL` remain strictly secured in GitHub Secrets and are never synced to git).*
 
 ### MCP Integration
 The MCP server exposes `blend_search` as a tool that any MCP-compatible AI client can call directly, enabling AI assistants to query your private knowledge base without any custom plugin code.

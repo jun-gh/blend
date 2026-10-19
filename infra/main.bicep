@@ -36,6 +36,27 @@ param minReplicas int = 0
 @description('Maximum replicas')
 param maxReplicas int = 5
 
+@description('Gemini chat model')
+param geminiChatModel string = 'models/gemini-3.1-flash-lite'
+
+@description('Gemini embedding model')
+param geminiEmbedModel string = 'models/gemini-embedding-2'
+
+@description('Embedding dimensionality')
+param embeddingDimensions int = 3072
+
+@description('Dense search weight')
+param denseWeight string = '0.6'
+
+@description('Sparse search weight')
+param sparseWeight string = '0.4'
+
+@description('Top-K candidate chunks retrieved before fusion')
+param topKRetrieval string = '10'
+
+@description('Top-K chunks sent to Gemini LLM context window')
+param topKContext string = '5'
+
 @description('Optional ID of an existing Container Apps Environment to reuse')
 param existingEnvironmentId string = ''
 
@@ -92,6 +113,13 @@ module containerApp 'modules/container-app.bicep' = {
     sitePassword: sitePassword
     minReplicas: minReplicas
     maxReplicas: maxReplicas
+    geminiChatModel: geminiChatModel
+    geminiEmbedModel: geminiEmbedModel
+    embeddingDimensions: embeddingDimensions
+    denseWeight: denseWeight
+    sparseWeight: sparseWeight
+    topKRetrieval: topKRetrieval
+    topKContext: topKContext
   }
 }
 
