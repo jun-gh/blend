@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { getSessionId } from '../utils/session.js'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
@@ -135,6 +136,21 @@ export default function ChatPage({ modelInfo }) {
 
   useEffect(() => { scrollToBottom() }, [messages, loading])
 
+  useEffect(() => {
+    const handleReset = () => {
+      setMessages([
+        {
+          role: 'assistant',
+          content: 'Session reset! I am ready to search your new session documents.',
+          id: 'welcome-reset',
+        },
+      ])
+      setError(null)
+    }
+    window.addEventListener('blend-session-reset', handleReset)
+    return () => window.removeEventListener('blend-session-reset', handleReset)
+  }, [])
+
   const sendMessage = async (overrideText = null) => {
     const text = (typeof overrideText === 'string' ? overrideText : input).trim()
     if (!text || loading) return
@@ -155,6 +171,7 @@ export default function ChatPage({ modelInfo }) {
       const token = localStorage.getItem('blend_access_token')
       const headers = {
         'Content-Type': 'application/json',
+        'X-Session-ID': getSessionId(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       }
       const res = await fetch(`${API_BASE}/api/query/`, {

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_session
 from app.core.security import require_site_auth
+from app.core.session import get_session_id
 from app.models.schemas import QueryRequest, QueryResponse, SourceChunk
 from app.services.gemini import generate_answer
 from app.services.hybrid_search import hybrid_search
@@ -21,9 +22,11 @@ router = APIRouter(dependencies=[Depends(require_site_auth)])
 async def query_knowledge_base(
     payload: QueryRequest,
     session: AsyncSession = Depends(get_session),
+    session_id: str = Depends(get_session_id),
 ) -> QueryResponse:
     """Hybrid-search the knowledge base and generate a grounded response."""
-    # 1. Hybrid retrieval
+    # 1. Hybrid retrieval scoped to the caller's session
+    active_session_id = payload.session_id or session_id
     t0 = time.perf_counter()
     results = await hybrid_search(
         session,
@@ -31,6 +34,7 @@ async def query_knowledge_base(
         top_k=payload.top_k,
         dense_weight=payload.dense_weight,
         sparse_weight=payload.sparse_weight,
+        session_id=active_session_id,
     )
     retrieval_ms = (time.perf_counter() - t0) * 1000
 

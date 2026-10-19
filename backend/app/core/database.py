@@ -72,8 +72,22 @@ async def init_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        from sqlalchemy import text
+
+        try:
+            await conn.execute(
+                text("ALTER TABLE documents ADD COLUMN session_id VARCHAR(64) DEFAULT '' NOT NULL")
+            )
+            await conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_documents_session_id ON documents (session_id)"
+                )
+            )
+        except Exception:
+            # Column already exists
+            pass
+
         if settings.database_url.startswith("sqlite"):
-            from sqlalchemy import text
             await conn.execute(
                 text(
                     """

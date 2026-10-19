@@ -16,7 +16,11 @@ async def test_document_lifecycle():
     from app.core.database import init_db
 
     await init_db()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"X-Session-ID": "test-session-lifecycle"},
+    ) as client:
         # 1. Create document
         create_res = await client.post(
             "/api/documents/",

@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 async def ingest_document(
     session: AsyncSession,
     payload: DocumentCreate,
+    session_id: str = "",
 ) -> Document:
     """Full ingestion pipeline for a new document.
 
@@ -33,7 +34,7 @@ async def ingest_document(
         5. Populate the FTS5 virtual table.
     """
     # 1. Create document
-    doc = Document(title=payload.title, source=payload.source)
+    doc = Document(title=payload.title, source=payload.source, session_id=session_id)
     session.add(doc)
     await session.flush()  # obtain doc.id without committing yet
 
