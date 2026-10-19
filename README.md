@@ -190,7 +190,8 @@ npm install
 npm run dev
 ```
 
-Frontend is now live at **https://blend-jmco.vercel.app**
+Frontend is now live at **https://evalgen.jmco.workers.dev**
+
 
 ---
 
