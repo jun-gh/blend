@@ -21,15 +21,20 @@ log = logging.getLogger(__name__)
 
 
 def is_auth_required() -> bool:
-    """Return True if SITE_PASSWORD is configured and non-empty."""
-    return bool(settings.site_password and settings.site_password.strip())
+    """Return True if SITE_PASSWORD is configured, non-empty, and not 'null' / 'none'."""
+    val = settings.site_password
+    if val is None:
+        return False
+    cleaned = str(val).strip()
+    return bool(cleaned and cleaned.lower() not in ("null", "none", '""', "''"))
 
 
 def verify_site_password(password: str) -> bool:
     """Validate visitor password against settings.site_password using constant-time comparison."""
     if not is_auth_required():
         return True
-    return secrets.compare_digest(password.strip(), settings.site_password.strip())
+    configured = str(settings.site_password or "").strip()
+    return secrets.compare_digest(password.strip(), configured)
 
 
 def create_access_token() -> tuple[str, int]:
@@ -37,7 +42,8 @@ def create_access_token() -> tuple[str, int]:
     current_time = int(time.time())
     expires_at = current_time + (settings.token_expiry_days * 86400)
     payload = f"v1:{expires_at}"
-    key = settings.site_password.strip().encode("utf-8")
+    raw_key = (str(settings.site_password or "") if is_auth_required() else "open-dev-session")
+    key = raw_key.strip().encode("utf-8")
     signature = hmac.new(key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
     token = f"{payload}:{signature}"
     return token, expires_at
@@ -68,7 +74,7 @@ def verify_access_token(token: str) -> bool:
         return False
 
     payload = f"{version}:{expires_at_str}"
-    key = settings.site_password.strip().encode("utf-8")
+    key = str(settings.site_password or "").strip().encode("utf-8")
     expected_sig = hmac.new(key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
     return secrets.compare_digest(signature, expected_sig)
 

@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import init_db
 from app.core.security import (
     create_access_token,
+    is_auth_required,
     verify_access_token,
     verify_site_password,
 )
@@ -58,7 +59,10 @@ async def test_auth_status_and_verification_flow():
             # 1. Status check
             status_res = await client.get("/api/auth/status")
             assert status_res.status_code == 200
-            assert status_res.json()["required"] is True
+            status_data = status_res.json()
+            assert status_data["required"] is True
+            assert "model" in status_data
+            assert "model_name" in status_data
 
             # 2. Verify with wrong password
             wrong_res = await client.post(
@@ -97,3 +101,36 @@ async def test_auth_status_and_verification_flow():
             assert revoked_res.status_code == 401
     finally:
         settings.site_password = original_pwd
+
+
+def test_null_or_blank_password_disables_auth():
+    original_pwd = settings.site_password
+    try:
+        for blank_val in ("", None, "   ", "null", "NULL", "none", "None", '""', "''"):
+            settings.site_password = blank_val
+            assert is_auth_required() is False
+            assert verify_site_password("anything") is True
+            assert verify_access_token("any-token") is True
+    finally:
+        settings.site_password = original_pwd
+
+
+@pytest.mark.anyio
+async def test_unprotected_flow_when_password_blank():
+    await init_db()
+    original_pwd = settings.site_password
+    try:
+        settings.site_password = ""
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            status_res = await client.get("/api/auth/status")
+            assert status_res.status_code == 200
+            assert status_res.json()["required"] is False
+
+            # Protected routes are open without any Authorization header
+            doc_res = await client.get("/api/documents/")
+            assert doc_res.status_code == 200
+    finally:
+        settings.site_password = original_pwd
+

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     is_auth_required,
@@ -20,8 +21,12 @@ router = APIRouter()
 
 @router.get("/status", response_model=AuthStatusResponse)
 async def get_auth_status() -> AuthStatusResponse:
-    """Return whether password protection is currently enabled."""
-    return AuthStatusResponse(required=is_auth_required())
+    """Return whether password protection is currently enabled and active AI model."""
+    return AuthStatusResponse(
+        required=is_auth_required(),
+        model=settings.gemini_chat_model,
+        model_name=settings.chat_model_display_name,
+    )
 
 
 @router.post("/verify", response_model=AuthTokenResponse)

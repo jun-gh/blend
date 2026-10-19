@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -37,7 +37,15 @@ async def query_knowledge_base(
     # 2. LLM generation with retrieved context
     context = results[: settings.top_k_context]
     t1 = time.perf_counter()
-    answer = await generate_answer(query=payload.query, context_chunks=context)
+    try:
+        answer = await generate_answer(query=payload.query, context_chunks=context)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating response from AI model: {exc}",
+        ) from exc
     generation_ms = (time.perf_counter() - t1) * 1000
 
     return QueryResponse(
@@ -54,6 +62,7 @@ async def query_knowledge_base(
         ],
         query=payload.query,
         model=settings.gemini_chat_model,
+        model_name=settings.chat_model_display_name,
         retrieval_ms=round(retrieval_ms, 2),
         generation_ms=round(generation_ms, 2),
     )

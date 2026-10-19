@@ -6,9 +6,33 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def format_model_name(model_id: str) -> str:
+    """Format model identifier (e.g. 'models/gemini-2.0-flash') into human-readable title."""
+    if not model_id:
+        return "Unknown Model"
+    clean = model_id.removeprefix("models/").strip()
+    parts = clean.split("-")
+    capitalized_parts: list[str] = []
+    for part in parts:
+        lower = part.lower()
+        if lower == "gemini":
+            capitalized_parts.append("Gemini")
+        elif lower == "flash":
+            capitalized_parts.append("Flash")
+        elif lower == "pro":
+            capitalized_parts.append("Pro")
+        elif lower == "exp":
+            capitalized_parts.append("Exp")
+        elif any(c.isdigit() for c in part):
+            capitalized_parts.append(part.upper() if len(part) <= 3 else part)
+        else:
+            capitalized_parts.append(part.capitalize())
+    return " ".join(capitalized_parts)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "backend/.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -18,7 +42,7 @@ class Settings(BaseSettings):
     app_name: str = "Blend"
     debug: bool = False
     cors_origins: list[str] = ["*"]
-    site_password: str = Field(default="", alias="SITE_PASSWORD")
+    site_password: str | None = Field(default="", alias="SITE_PASSWORD")
     token_expiry_days: int = 7
 
     # Database
@@ -28,9 +52,14 @@ class Settings(BaseSettings):
 
     # Google Gemini
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
-    gemini_embed_model: str = "models/gemini-embedding-2"
-    gemini_chat_model: str = "models/gemini-3.8-flash"
-    embedding_dimensions: int = 3072
+    gemini_embed_model: str = Field(default="models/text-embedding-004", alias="GEMINI_EMBED_MODEL")
+    gemini_chat_model: str = Field(default="models/gemini-2.0-flash", alias="GEMINI_CHAT_MODEL")
+    embedding_dimensions: int = 768
+
+    @property
+    def chat_model_display_name(self) -> str:
+        """Human-readable display name for the configured Gemini chat model."""
+        return format_model_name(self.gemini_chat_model)
 
     # Hybrid Search weights (must sum to 1.0)
     dense_weight: float = 0.6   # Weight for vector/dense score

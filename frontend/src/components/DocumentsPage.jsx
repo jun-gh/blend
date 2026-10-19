@@ -108,7 +108,10 @@ function UploadForm({ onSuccess }) {
         }),
       })
       handleAuthResponse(res)
-      if (!res.ok) throw new Error(`Upload failed (${res.status})`)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.detail || `Upload failed (${res.status})`)
+      }
       setTitle('')
       setContent('')
       setSource('')

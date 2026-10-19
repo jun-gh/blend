@@ -16,8 +16,9 @@ export default function App() {
   const [authRequired, setAuthRequired] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [modelInfo, setModelInfo] = useState({ model: '', name: '' })
 
-  // Check backend auth status on mount
+  // Check backend auth status & active AI model on mount
   useEffect(() => {
     let isMounted = true
     const checkAuthStatus = async () => {
@@ -25,7 +26,12 @@ export default function App() {
         const res = await fetch(`${API_BASE}/api/auth/status`)
         if (res.ok) {
           const data = await res.json()
-          if (isMounted) setAuthRequired(Boolean(data.required))
+          if (isMounted) {
+            setAuthRequired(Boolean(data.required))
+            if (data.model) {
+              setModelInfo({ model: data.model, name: data.model_name || data.model })
+            }
+          }
         }
       } catch {
         if (isMounted && token) setAuthRequired(true)
@@ -107,15 +113,27 @@ export default function App() {
               <span className="text-xl font-bold tracking-tight text-brand-400">Blend</span>
               <p className="text-xs text-gray-500 mt-0.5">Hybrid Search RAG</p>
             </div>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="md:hidden text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"
-              aria-label="Close navigation menu"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1.5">
+              {authRequired && (
+                <button
+                  onClick={handleLock}
+                  className="text-xs text-gray-400 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-gray-800 flex items-center justify-center"
+                  title="Lock site"
+                  aria-label="Lock site"
+                >
+                  <span className="text-sm">🔒</span>
+                </button>
+              )}
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="md:hidden text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+                aria-label="Close navigation menu"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <nav className="flex-1 px-2 py-4 space-y-1">
@@ -139,18 +157,16 @@ export default function App() {
             ))}
           </nav>
 
-          <div className="px-4 py-3 border-t border-gray-800 flex items-center justify-between">
-            <p className="text-xs text-gray-600">v0.1.0</p>
-            {authRequired && (
-              <button
-                onClick={handleLock}
-                className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-800"
-                title="Lock site"
+          <div className="px-5 py-3 border-t border-gray-800 text-center">
+            <p className="text-[10px] text-gray-500 leading-normal break-words">
+              Powered by{' '}
+              <span
+                title={modelInfo.model ? `Configured via GEMINI_CHAT_MODEL: ${modelInfo.model}` : undefined}
+                className="font-medium text-gray-400"
               >
-                <span>🔒</span>
-                <span>Lock</span>
-              </button>
-            )}
+                {modelInfo.name || 'Gemini'}
+              </span>
+            </p>
           </div>
         </aside>
 
@@ -172,6 +188,15 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
+              {modelInfo.name && (
+                <span
+                  title={`Configured via GEMINI_CHAT_MODEL: ${modelInfo.model}`}
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-800 border border-gray-700/60 text-[10px] text-gray-300 font-medium"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>{modelInfo.name}</span>
+                </span>
+              )}
               {authRequired && (
                 <button
                   onClick={handleLock}
@@ -188,7 +213,7 @@ export default function App() {
           {/* Main View Area */}
           <main className="flex-1 min-w-0 overflow-hidden">
             <Routes>
-              <Route path="/" element={<ChatPage />} />
+              <Route path="/" element={<ChatPage modelInfo={modelInfo} />} />
               <Route path="/documents" element={<DocumentsPage />} />
             </Routes>
           </main>
