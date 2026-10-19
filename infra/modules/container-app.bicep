@@ -32,6 +32,27 @@ param minReplicas int = 0
 
 param maxReplicas int = 5
 
+@description('Gemini chat model')
+param geminiChatModel string = 'models/gemini-3.1-flash-lite'
+
+@description('Gemini embedding model')
+param geminiEmbedModel string = 'models/gemini-embedding-2'
+
+@description('Embedding dimensionality')
+param embeddingDimensions int = 3072
+
+@description('Dense search weight')
+param denseWeight string = '0.6'
+
+@description('Sparse search weight')
+param sparseWeight string = '0.4'
+
+@description('Top-K candidate chunks retrieved before fusion')
+param topKRetrieval string = '10'
+
+@description('Top-K chunks sent to Gemini LLM context window')
+param topKContext string = '5'
+
 resource ca 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
@@ -52,7 +73,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         { name: 'gemini-api-key', value: geminiApiKey }
         { name: 'database-url',   value: databaseUrl }
-        { name: 'site-password',  value: sitePassword }
+        { name: 'site-password',  value: empty(sitePassword) ? 'none' : sitePassword }
       ]
     }
     template: {
@@ -68,6 +89,13 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'GEMINI_API_KEY', secretRef: 'gemini-api-key' }
             { name: 'DATABASE_URL',   secretRef: 'database-url' }
             { name: 'SITE_PASSWORD',  secretRef: 'site-password' }
+            { name: 'GEMINI_CHAT_MODEL',    value: geminiChatModel }
+            { name: 'GEMINI_EMBED_MODEL',   value: geminiEmbedModel }
+            { name: 'EMBEDDING_DIMENSIONS', value: string(embeddingDimensions) }
+            { name: 'DENSE_WEIGHT',         value: denseWeight }
+            { name: 'SPARSE_WEIGHT',        value: sparseWeight }
+            { name: 'TOP_K_RETRIEVAL',      value: topKRetrieval }
+            { name: 'TOP_K_CONTEXT',        value: topKContext }
             { name: 'DEBUG',          value: 'false' }
             { name: 'CORS_ORIGINS',   value: '["*"]' }
           ]
