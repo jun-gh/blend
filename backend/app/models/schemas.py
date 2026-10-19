@@ -55,19 +55,34 @@ class SourceChunk(BaseModel):
 
 
 class QueryResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     answer: str
     sources: list[SourceChunk]
     query: str
     model: str
+    model_name: str
     retrieval_ms: float
     generation_ms: float
 
 
 # ---------------------------------------------------------------------------
-# Auth schemas
+# Auth & System Config schemas
 # ---------------------------------------------------------------------------
 class AuthStatusResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     required: bool
+    model: str
+    model_name: str
+
+
+class ModelConfigResponse(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    model: str
+    model_name: str
+    embed_model: str
 
 
 class PasswordVerifyRequest(BaseModel):

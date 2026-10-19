@@ -297,6 +297,16 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 2. **Retrieval**: Dense search + Sparse search → RRF merge → Top-K chunks
 3. **Generation**: Grounded prompt with retrieved context → Gemini LLM → Answer
 
+### Error Handling & Automatic Retries
+- **3-Retry Resilience**: Automatic exponential backoff with jitter (up to 3 retries) on transient API errors (`500`, `503`, `504`) and rate limits (`429` / `ResourceExhausted`).
+- **User-Centric Error UX**: Distinguishes rate limit/quota events from connection issues and displays an inline banner with 1-click **Retry** and **Dismiss** controls directly above the chat box.
+
+### Dynamic Model Configuration
+- Switch LLM models via `GEMINI_CHAT_MODEL` in `.env` without modifying code. The UI dynamically detects and displays the active model badge in the chat header and sidebar footer (`Powered by <model>`).
+
+### Optional Password Protection
+- Configure `SITE_PASSWORD` in `.env` to protect the app. If left empty, blank, or `"null"`, authentication is seamlessly disabled for open development and demo access.
+
 ### MCP Integration
 The MCP server exposes `blend_search` as a tool that any MCP-compatible AI client can call directly, enabling AI assistants to query your private knowledge base without any custom plugin code.
 
@@ -309,7 +319,8 @@ The MCP server exposes `blend_search` as a tool that any MCP-compatible AI clien
 | `DATABASE_URL`         | `sqlite+aiosqlite:///./blend.db`    | Database connection string           |
 | `GEMINI_API_KEY`       | —                                   | **Required.** Google AI API key      |
 | `GEMINI_EMBED_MODEL`   | `models/text-embedding-004`         | Embedding model                      |
-| `GEMINI_CHAT_MODEL`    | `models/gemini-2.0-flash`           | Chat/generation model                |
+| `GEMINI_CHAT_MODEL`    | `models/gemini-2.0-flash`           | Chat/generation model (dynamic)      |
+| `SITE_PASSWORD`        | —                                   | Optional visitor password protection |
 | `EMBEDDING_DIMENSIONS` | `768`                               | Vector dimensionality                |
 | `DENSE_WEIGHT`         | `0.6`                               | RRF dense score weight               |
 | `SPARSE_WEIGHT`        | `0.4`                               | RRF sparse score weight              |
