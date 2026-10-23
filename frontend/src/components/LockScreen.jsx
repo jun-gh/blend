@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import ThemeToggle from './ThemeToggle.jsx'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
@@ -37,17 +38,21 @@ export default function LockScreen({ onUnlock }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col justify-center items-center px-4 select-none">
+    <div className="relative min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col justify-center items-center px-4 select-none transition-colors duration-200">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggle />
+      </div>
+
       <div className="w-full max-w-sm">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-950 border border-brand-800/60 shadow-inner mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-50 border border-brand-200 dark:bg-brand-950 dark:border-brand-800/60 shadow-inner mb-4">
             <span className="text-3xl">🔐</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center justify-center gap-2">
             <span>Blend</span>
           </h1>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
             This site is protected. Enter the access password to continue.
           </p>
         </div>
@@ -55,17 +60,17 @@ export default function LockScreen({ onUnlock }) {
         {/* Lock Card */}
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl space-y-4"
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-xl dark:shadow-2xl space-y-4"
         >
           {error && (
-            <div className="bg-red-950/70 border border-red-800/80 text-red-200 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2 animate-fade-in">
+            <div className="bg-red-50 border border-red-200 dark:bg-red-950/70 dark:border-red-800/80 text-red-700 dark:text-red-200 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2 animate-fade-in">
               <span>⚠️</span>
               <span>{error}</span>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium text-gray-300 mb-1.5">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">
               Access Password
             </label>
             <div className="relative">
@@ -76,12 +81,12 @@ export default function LockScreen({ onUnlock }) {
                 placeholder="Enter password…"
                 autoFocus
                 required
-                className="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors pr-10"
+                className="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors pr-10 shadow-sm dark:shadow-none"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 text-xs p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 text-xs p-1"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? '🙈' : '👁️'}
@@ -98,7 +103,7 @@ export default function LockScreen({ onUnlock }) {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-xs text-gray-400 dark:text-gray-600 mt-6">
           Blend Hybrid Search RAG · v0.1.0
         </p>
       </div>

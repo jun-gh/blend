@@ -1,0 +1,67 @@
+services:
+  # ── PostgreSQL Database with pgvector (Matches production Neon) ──────────────
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: blend-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: blend
+      POSTGRES_PASSWORD: blend_local_password
+      POSTGRES_DB: blend
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blend -d blend"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Blend Backend (FastAPI / Uvicorn) ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blend-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Explicitly connects to the local Docker Postgres database
+      - DATABASE_URL=postgresql+asyncpg://blend:blend_local_password@db:5432/blend
+      - CORS_ORIGINS=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://localhost"]
+      - DEBUG=false
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Blend Frontend (Vite / Nginx Reverse Proxy) ──────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blend-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:

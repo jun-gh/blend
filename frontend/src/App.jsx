@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import ChatPage from './components/ChatPage.jsx'
 import DocumentsPage from './components/DocumentsPage.jsx'
 import LockScreen from './components/LockScreen.jsx'
+import ThemeToggle from './components/ThemeToggle.jsx'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
@@ -72,8 +73,8 @@ export default function App() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-[100dvh] bg-gray-950 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-brand-400 text-sm font-medium animate-pulse">
+      <div className="min-h-[100dvh] bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-brand-600 dark:text-brand-400 text-sm font-medium animate-pulse">
           <span className="w-6 h-6 rounded-md bg-brand-600 text-white flex items-center justify-center text-xs font-bold">
             B
           </span>
@@ -90,12 +91,12 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-950 text-gray-100">
+      <div className="h-[100dvh] w-full flex flex-col md:flex-row overflow-hidden bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         {/* Mobile Backdrop */}
         {mobileMenuOpen && (
           <div
             onClick={() => setMobileMenuOpen(false)}
-            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-fade-in"
+            className="md:hidden fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-40 animate-fade-in"
           />
         )}
 
@@ -103,21 +104,24 @@ export default function App() {
         <aside
           className={`
             fixed md:static inset-y-0 left-0 z-50
-            w-64 md:w-56 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col
+            w-64 md:w-56 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col
             transition-transform duration-200 ease-in-out
             ${mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'}
           `}
         >
-          <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
-            <div>
-              <span className="text-xl font-bold tracking-tight text-brand-400">Blend</span>
-              <p className="text-xs text-gray-500 mt-0.5">Hybrid Search RAG</p>
+          <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/favicon.svg" alt="Blend Logo" className="w-8 h-8 rounded-lg shadow-sm shrink-0" />
+              <div>
+                <span className="text-xl font-bold tracking-tight text-brand-600 dark:text-brand-400">Blend</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Hybrid Search</p>
+              </div>
             </div>
             <div className="flex items-center gap-1.5">
               {authRequired && (
                 <button
                   onClick={handleLock}
-                  className="text-xs text-gray-400 hover:text-red-400 transition-colors p-1.5 rounded-lg hover:bg-gray-800 flex items-center justify-center"
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center"
                   title="Lock site"
                   aria-label="Lock site"
                 >
@@ -126,7 +130,7 @@ export default function App() {
               )}
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="md:hidden text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors"
+                className="md:hidden text-gray-400 hover:text-gray-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 aria-label="Close navigation menu"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,7 +151,7 @@ export default function App() {
                   `flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-brand-600 text-white'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-100'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'
                   }`
                 }
               >
@@ -157,12 +161,12 @@ export default function App() {
             ))}
           </nav>
 
-          <div className="px-5 py-3 border-t border-gray-800 text-center">
-            <p className="text-[10px] text-gray-500 leading-normal break-words">
+          <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 text-center">
+            <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal break-words">
               Powered by{' '}
               <span
                 title={modelInfo.model ? `Configured via GEMINI_CHAT_MODEL: ${modelInfo.model}` : undefined}
-                className="font-medium text-gray-400"
+                className="font-medium text-gray-600 dark:text-gray-400"
               >
                 {modelInfo.name || 'Gemini'}
               </span>
@@ -173,34 +177,27 @@ export default function App() {
         {/* Content Wrapper */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Mobile Top Navigation Bar */}
-          <header className="md:hidden flex items-center justify-between px-4 py-2.5 bg-gray-900 border-b border-gray-800 shrink-0">
+          <header className="md:hidden flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shrink-0">
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setMobileMenuOpen(true)}
-                className="p-1.5 -ml-1 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="p-1.5 -ml-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 aria-label="Open navigation menu"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-              <span className="text-base font-bold tracking-tight text-brand-400">Blend</span>
+              <img src="/favicon.svg" alt="Blend Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
+              <span className="text-base font-bold tracking-tight text-brand-600 dark:text-brand-400">Blend</span>
             </div>
 
             <div className="flex items-center gap-2">
-              {modelInfo.name && (
-                <span
-                  title={`Configured via GEMINI_CHAT_MODEL: ${modelInfo.model}`}
-                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-800 border border-gray-700/60 text-[10px] text-gray-300 font-medium"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>{modelInfo.name}</span>
-                </span>
-              )}
+              <ThemeToggle />
               {authRequired && (
                 <button
                   onClick={handleLock}
-                  className="text-xs text-gray-400 hover:text-red-400 flex items-center gap-1 px-2 py-1 rounded bg-gray-800/80 border border-gray-700/60"
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 flex items-center gap-1 px-2 py-1 rounded bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/60"
                   title="Lock site"
                 >
                   <span>🔒</span>

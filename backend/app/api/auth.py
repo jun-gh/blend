@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.config import settings
 from app.core.security import (
@@ -15,6 +15,7 @@ from app.models.schemas import (
     AuthTokenResponse,
     PasswordVerifyRequest,
 )
+from app.security.rate_limiter import rate_limit_auth
 
 router = APIRouter()
 
@@ -29,7 +30,11 @@ async def get_auth_status() -> AuthStatusResponse:
     )
 
 
-@router.post("/verify", response_model=AuthTokenResponse)
+@router.post(
+    "/verify",
+    response_model=AuthTokenResponse,
+    dependencies=[Depends(rate_limit_auth)],
+)
 async def verify_password(payload: PasswordVerifyRequest) -> AuthTokenResponse:
     """Verify visitor password and issue a signed session token."""
     if not is_auth_required():

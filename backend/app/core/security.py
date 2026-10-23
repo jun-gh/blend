@@ -79,15 +79,32 @@ def verify_access_token(token: str) -> bool:
     return secrets.compare_digest(signature, expected_sig)
 
 
-async def require_site_auth(authorization: str | None = Header(None)) -> bool:
-    """FastAPI dependency to protect endpoints with the site access token."""
+def verify_api_key(api_key: str) -> bool:
+    """Validate machine-to-machine API key against settings.blend_api_key."""
+    configured = str(settings.blend_api_key or "").strip()
+    if not configured:
+        return False
+    return secrets.compare_digest(api_key.strip(), configured)
+
+
+async def require_site_auth(
+    authorization: str | None = Header(None),
+    x_api_key: str | None = Header(None, alias="X-API-Key"),
+) -> bool:
+    """FastAPI dependency to protect endpoints with either API Key or site session token."""
+    # 1. Allow valid X-API-Key header if configured
+    if x_api_key and verify_api_key(x_api_key):
+        return True
+
+    # 2. If password authentication is not configured, endpoints are open (dev mode)
     if not is_auth_required():
         return True
 
+    # 3. Require valid Bearer token
     if not authorization:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required. Missing Authorization header.",
+            detail="Authentication required. Missing Authorization or X-API-Key header.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
