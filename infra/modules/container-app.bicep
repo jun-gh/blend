@@ -59,6 +59,13 @@ param sessionExpiryDays int = 7
 @description('Maximum documents allowed per session')
 param maxDocumentsPerSession int = 10
 
+@description('Allowed CORS origins (JSON array string or domain URL)')
+param corsOrigins string = '["https://blend-jmco.vercel.app"]'
+
+var isJsonArray = startsWith(trim(corsOrigins), '[')
+var allowedOrigins = isJsonArray ? json(corsOrigins) : [corsOrigins]
+var containerCorsOrigins = isJsonArray ? corsOrigins : '["${corsOrigins}"]'
+
 resource ca 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
   location: location
@@ -71,7 +78,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
         targetPort: 8000
         transport: 'auto'
         corsPolicy: {
-          allowedOrigins: ['*']
+          allowedOrigins: allowedOrigins
           allowedMethods: ['GET', 'POST', 'DELETE', 'OPTIONS']
           allowedHeaders: ['*']
         }
@@ -105,7 +112,7 @@ resource ca 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'SESSION_EXPIRY_DAYS',  value: string(sessionExpiryDays) }
             { name: 'MAX_DOCUMENTS_PER_SESSION', value: string(maxDocumentsPerSession) }
             { name: 'DEBUG',          value: 'false' }
-            { name: 'CORS_ORIGINS',   value: '["*"]' }
+            { name: 'CORS_ORIGINS',   value: containerCorsOrigins }
           ]
           probes: [
             {
