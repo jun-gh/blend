@@ -2,8 +2,9 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -49,6 +50,26 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]
     site_password: str | None = Field(default="", alias="SITE_PASSWORD")
     blend_api_key: str | None = Field(default="", alias="BLEND_API_KEY")
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v: Any) -> list[str]:
+        """Support JSON arrays, comma-separated lists, and single domain URLs."""
+        if isinstance(v, str):
+            clean = v.strip()
+            if not clean:
+                return ["*"]
+            if clean.startswith("[") and clean.endswith("]"):
+                import json
+                try:
+                    return json.loads(clean)
+                except Exception:
+                    pass
+            return [origin.strip() for origin in clean.split(",") if origin.strip()]
+        if isinstance(v, list | tuple):
+            return list(v)
+        return ["*"]
+
     token_expiry_days: int = 7
     session_expiry_days: int = Field(default=7, alias="SESSION_EXPIRY_DAYS")
     max_documents_per_session: int = Field(default=10, alias="MAX_DOCUMENTS_PER_SESSION")
