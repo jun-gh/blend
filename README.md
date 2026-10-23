@@ -4,6 +4,8 @@
 
 Built for learning and mastery of modern RAG architectures, hybrid retrieval strategies, and cloud-native deployment patterns.
 
+Live: **https://blend-jmco.vercel.app**
+
 ---
 
 ## Architecture Overview
@@ -23,7 +25,7 @@ Built for learning and mastery of modern RAG architectures, hybrid retrieval str
 │  ┌──────▼──────────────────────────────────────────┐             │
 │  │           Hybrid Search Engine (RRF)             │             │
 │  │   Dense (Gemini Embeddings + Cosine Sim)         │             │
-│  │   +  Sparse (SQLite FTS5 / Postgres tsvector)    │             │
+│  │   +  Sparse (PostgreSQL Word-Boundary / FTS)     │             │
 │  └──────────────────────┬───────────────────────────┘             │
 │                          │                                        │
 │  ┌───────────────────────▼──────────────────────────┐            │
@@ -32,9 +34,8 @@ Built for learning and mastery of modern RAG architectures, hybrid retrieval str
 └─────────────────────────────────────────────────────────────────┘
                      │
         ┌────────────▼────────────┐
-        │   SQLite (local dev)    │
-        │   Neon Postgres (prod)  │
-        │   + pgvector extension  │
+        │  PostgreSQL + pgvector  │
+        │  (Local Docker & Neon)  │
         └─────────────────────────┘
 ```
 
@@ -62,7 +63,7 @@ score(d) = dense_weight / (k + dense_rank)
 | Layer          | Local Dev                    | Production                      |
 |----------------|------------------------------|---------------------------------|
 | **Backend**    | FastAPI + Uvicorn            | Azure Container Apps (scale-to-zero) |
-| **Database**   | SQLite + FTS5                | Neon Serverless Postgres + pgvector |
+| **Database**   | PostgreSQL + pgvector (Docker)| Neon Serverless Postgres + pgvector |
 | **Embeddings** | Gemini `text-embedding-004`  | Gemini `text-embedding-004`     |
 | **Generation** | Gemini `gemini-2.0-flash`    | Gemini `gemini-2.0-flash`       |
 | **Frontend**   | React 18 + Vite + Tailwind   | Vercel                          |
@@ -105,13 +106,15 @@ blend/
 │   │       └── query.py         # POST /api/query/ with session filter
 │   ├── Dockerfile               # Multi-stage build (builder + runtime)
 │   ├── requirements.txt
-│   ├── .env.example
 │   └── tests/
 │       ├── test_health.py
 │       ├── test_hybrid_search.py
 │       ├── test_auth.py
+│       ├── test_guardrails.py
 │       └── test_sessions.py
 ├── frontend/
+│   ├── Dockerfile               # Multi-stage Nginx build
+│   ├── nginx.conf               # Nginx reverse proxy configuration
 │   ├── public/
 │   │   └── favicon.svg          # Branded capital 'B' SVG favicon
 │   ├── src/
@@ -134,7 +137,9 @@ blend/
 │       ├── container-app.bicep  # Azure Container App + scaling rules
 │       └── container-registry.bicep  # Optional ACR module
 ├── scripts/
-│   └── sync_env.py              # Syncs backend/.env settings to Bicep & infra/app.env
+│   └── sync_env.py              # Syncs root .env settings to Bicep & infra/app.env
+├── .env.example                 # Unified root environment template (Repo, Backend, Frontend)
+├── docker-compose.yml           # Local multi-container setup (Postgres + Backend + Frontend)
 └── README.md
 ```
 
@@ -142,20 +147,46 @@ blend/
 
 ## Quick Start — Local Development
 
-### Prerequisites
+### Option A: Docker Compose with PostgreSQL (Recommended — Matches Production)
+
+Run the complete stack with **PostgreSQL** (`pgvector/pgvector:pg16`), the FastAPI backend, and the Nginx frontend reverse proxy in Docker:
+
+1. **Configure API Key & Settings**:
+   Ensure `.env` exists in the repository root and contains your Gemini API key:
+   ```bash
+   cp .env.example .env
+   # Set GEMINI_API_KEY=your-gemini-key in .env
+   ```
+
+2. **Launch with Docker Compose**:
+   ```bash
+   # Ensure Docker is running, then:
+   docker compose up --build
+   ```
+
+3. **Open the App**:
+   - **Frontend UI**: [http://localhost:5173](http://localhost:5173)
+   - **Backend API & Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+   - **PostgreSQL**: `localhost:5432` (`blend` / `blend_local_password`)
+
+---
+
+### Option B: Native Python & Vite (Without Docker)
+
+#### Prerequisites
 
 - Python 3.11+
 - Node.js 20+
 - A [Google Gemini API key](https://aistudio.google.com/app/apikey)
 
-### 1. Clone & configure
+#### 1. Setup Root Configuration
 
 ```bash
-git clone https://github.com/jun-gh/blend.git
-cd blend
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY=your-key-here
 ```
 
-### 2. Backend
+#### 2. Backend
 
 ```bash
 cd backend
@@ -166,10 +197,6 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-# Configure secrets
-cp .env.example .env
-# Edit .env and set GEMINI_API_KEY=your-key-here
 
 # Start the API server
 uvicorn app.main:app --reload --port 8000
@@ -189,9 +216,6 @@ npm install
 # Start the dev server (proxies /api/* to :8000 automatically)
 npm run dev
 ```
-
-Frontend is now live at **https://blend-jmco.vercel.app**
-
 ---
 
 ## Usage
@@ -285,13 +309,13 @@ pytest tests/ -v --cov=app --cov-report=term-missing
    ```sql
    CREATE EXTENSION IF NOT EXISTS vector;
    ```
-2. Add a `VECTOR(768)` column to the `chunks` table (replacing the SQLite JSON fallback):
+2. Add a `VECTOR(768)` column to the `chunks` table (with HNSW cosine indexing):
    ```sql
    ALTER TABLE chunks ADD COLUMN embedding vector(768);
    CREATE INDEX ON chunks USING hnsw (embedding vector_cosine_ops);
    ```
 3. Update `DATABASE_URL` in your secrets / `.env` to the Neon connection string.
-4. The dense search in `hybrid_search.py` should be upgraded to use the pgvector `<=>` operator for production performance.
+4. The dense search in `hybrid_search.py` is powered by PostgreSQL vector similarity and full-text keyword retrieval.
 
 ---
 
@@ -299,11 +323,29 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 
 ### Hybrid Search (Dense + Sparse)
 - **Dense retrieval**: Embeds query and documents into high-dimensional vectors. Captures semantic meaning even without keyword overlap.
-- **Sparse retrieval**: BM25/FTS matches exact and stemmed keywords. Excellent for named entities, technical terms, and precise lookups.
+- **Sparse retrieval**: Matches exact and stemmed keywords using PostgreSQL word-boundary regex and full-text search. Excellent for named entities, technical terms, and precise lookups.
 - **RRF fusion**: Normalises rank positions (not raw scores) to combine both lists without score calibration.
 
+### Real-Time Streaming Responses (SSE) & Instant Source Hydration
+- **Token-by-Token Streaming**: Responses stream live over Server-Sent Events (`/api/query/stream`) with real-time UI typing animations.
+- **Instant Source Hydration**: Document citations hydrate immediately at the start of generation, providing instant transparency into retrieved sources before generation completes.
+
+### Conversational Intent Filter & Negative Citation Suppression
+- **Zero-Latency Intent Filter**: Detects conversational greetings, courtesy phrases, gratitude, and meta-assistant questions to bypass retrieval entirely, preventing false-positive citations on general conversation.
+- **Negative Response Suppression**: When the model indicates information is not in the documents (e.g. "The provided documents do not contain..."), all citations are automatically cleared.
+
+### Factual Grounding & Adaptive Citation Alignment
+- **Document-Level Alignment**: Extracts inline `[Doc: <Title>]` citations from generated answers and prunes any document not explicitly cited (eliminating false citations from other uploaded documents).
+- **Entity Overlap Pruning**: Evaluates factual overlap between answer entities and retrieved chunks, discarding non-supporting chunks and retaining only the chunks providing the ground truth (e.g. returning only the header chunk for contact/address queries).
+
+### Enterprise Security Guardrails
+- **In-Memory Sliding-Window Rate Limiting**: Per-IP windowed rate limiting across query, ingestion, and authentication endpoints.
+- **Bidirectional PII Redaction**: Scrubs credentials, AWS keys, bearer tokens, emails, phone numbers, and Luhn-validated credit cards prior to sending to LLMs.
+- **Deterministic Prompt Injection Quarantine**: Sub-millisecond boundary tagging and heuristic quarantine against jailbreaks, DAN prompts, and delimiter breakouts.
+- **Output Leak Shield**: Scans LLM responses to block verbatim regurgitation of system prompts and guardrail policies.
+
 ### RAG Pipeline Stages
-1. **Ingestion**: Chunk → Embed → Store (vector + FTS index)
+1. **Ingestion**: Chunk → Embed → Store (vector + PostgreSQL indices)
 2. **Retrieval**: Dense search + Sparse search → RRF merge → Top-K chunks
 3. **Generation**: Grounded prompt with retrieved context → Gemini LLM → Answer
 
@@ -320,7 +362,7 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 ### Session-Based Documents & Privacy
 - **Anonymous Sessions**: Users only see, query, and manage documents uploaded within their active browser session without needing user logins.
 - **Quota & Protection**: Each session is limited to a maximum of 10 documents (`MAX_DOCUMENTS_PER_SESSION`, configurable in `.env`). The UI displays real-time quota usage and provides a 1-click **Start New Session** reset.
-- **Automatic Expiry & Pruning**: Documents and their derived chunks automatically expire after 7 days (`SESSION_EXPIRY_DAYS`, configurable in `.env`), with automatic database pruning of expired documents and SQLite FTS index entries.
+- **Automatic Expiry & Pruning**: Documents and their derived chunks automatically expire after 7 days (`SESSION_EXPIRY_DAYS`, configurable in `.env`), with automatic database pruning of expired documents and chunk records.
 
 ### Syncing Local .env to Production Bicep
 When deploying via GitHub Actions, Azure Container Apps provisions the container with settings declared in `infra/main.bicep`. To ensure your custom models, search weights, and site password from your local `.env` are permanently preserved across future deployments without getting overwritten, run:
@@ -331,7 +373,7 @@ python3 scripts/sync_env.py
 npm run sync-env
 ```
 
-This reads non-secret settings from `backend/.env`, updates `infra/app.env`, and syncs default parameters across `infra/main.bicep` and `infra/modules/container-app.bicep`.
+This reads non-secret settings from root `.env`, updates `infra/app.env`, and syncs default parameters across `infra/main.bicep` and `infra/modules/container-app.bicep`.
 
 **Variables synced:**
 - `GEMINI_CHAT_MODEL`
@@ -354,21 +396,27 @@ The MCP server exposes `blend_search` as a tool that any MCP-compatible AI clien
 
 ## Environment Variables
 
-| Variable                    | Default                             | Description                          |
-|-----------------------------|-------------------------------------|--------------------------------------|
-| `DATABASE_URL`              | `sqlite+aiosqlite:///./blend.db`    | Database connection string           |
-| `GEMINI_API_KEY`            | —                                   | **Required.** Google AI API key      |
-| `GEMINI_EMBED_MODEL`        | `models/text-embedding-004`         | Embedding model                      |
-| `GEMINI_CHAT_MODEL`         | `models/gemini-2.0-flash`           | Chat/generation model (dynamic)      |
-| `SITE_PASSWORD`             | —                                   | Optional visitor password protection |
-| `SESSION_EXPIRY_DAYS`       | `7`                                 | Days before session docs expire      |
-| `MAX_DOCUMENTS_PER_SESSION` | `10`                                | Max documents allowed per session    |
-| `EMBEDDING_DIMENSIONS`      | `768`                               | Vector dimensionality                |
-| `DENSE_WEIGHT`              | `0.6`                               | RRF dense score weight               |
-| `SPARSE_WEIGHT`             | `0.4`                               | RRF sparse score weight              |
-| `TOP_K_RETRIEVAL`           | `10`                                | Chunks retrieved per query           |
-| `TOP_K_CONTEXT`             | `5`                                 | Chunks sent to LLM                   |
-| `DEBUG`                     | `false`                             | Enable SQL echo & verbose logging    |
+| Variable                    | Default                                                                 | Description                          |
+|-----------------------------|-------------------------------------------------------------------------|--------------------------------------|
+| `DATABASE_URL`              | `postgresql+asyncpg://blend:blend_local_password@localhost:5432/blend`  | Database connection string           |
+| `GEMINI_API_KEY`            | —                                                                       | **Required.** Google AI API key      |
+| `GEMINI_EMBED_MODEL`        | `models/text-embedding-004`                                             | Embedding model                      |
+| `GEMINI_CHAT_MODEL`         | `models/gemini-2.0-flash`                                               | Chat/generation model (dynamic)      |
+| `SITE_PASSWORD`             | —                                                                       | Optional visitor password protection |
+| `SESSION_EXPIRY_DAYS`       | `7`                                                                     | Days before session docs expire      |
+| `MAX_DOCUMENTS_PER_SESSION` | `10`                                                                    | Max documents allowed per session    |
+| `EMBEDDING_DIMENSIONS`      | `768`                                                                   | Vector dimensionality                |
+| `DENSE_WEIGHT`              | `0.6`                                                                   | RRF dense score weight               |
+| `SPARSE_WEIGHT`             | `0.4`                                                                   | RRF sparse score weight              |
+| `TOP_K_RETRIEVAL`           | `10`                                                                    | Chunks retrieved per query           |
+| `TOP_K_CONTEXT`             | `5`                                                                     | Chunks sent to LLM                   |
+| `SIMILARITY_THRESHOLD`      | `0.50`                                                                  | Minimum cosine similarity cutoff     |
+| `RELATIVE_SCORE_THRESHOLD`  | `0.80`                                                                  | Adaptive drop-off cutoff             |
+| `ENABLE_RATE_LIMITING`      | `true`                                                                  | Sliding window rate limiter          |
+| `ENABLE_PII_SCRUBBING`      | `true`                                                                  | Automatic PII scrubbing              |
+| `ENABLE_PROMPT_GUARD`       | `true`                                                                  | Prompt injection boundary protection |
+| `ENABLE_OUTPUT_SHIELD`      | `true`                                                                  | LLM system prompt leak prevention    |
+| `DEBUG`                     | `false`                                                                 | Enable SQL echo & verbose logging    |
 | `CORS_ORIGINS`              | `["http://localhost:5173"]`         | Allowed CORS origins (JSON array)    |
 
 ---

@@ -63,6 +63,9 @@ param sessionExpiryDays int = 7
 @description('Maximum documents allowed per session')
 param maxDocumentsPerSession int = 10
 
+@description('Allowed CORS origins (JSON array string or domain URL)')
+param corsOrigins string = '["https://blend-jmco.vercel.app"]'
+
 @description('Optional ID of an existing Container Apps Environment to reuse')
 param existingEnvironmentId string = ''
 
@@ -128,6 +131,7 @@ module containerApp 'modules/container-app.bicep' = {
     topKContext: topKContext
     sessionExpiryDays: sessionExpiryDays
     maxDocumentsPerSession: maxDocumentsPerSession
+    corsOrigins: corsOrigins
   }
 }
 

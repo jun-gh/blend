@@ -1,7 +1,15 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootEnvPath = path.resolve(__dirname, '../.env')
+const envDir = fs.existsSync(rootEnvPath) ? '../' : './'
+
 export default defineConfig({
+  envDir,
   plugins: [react()],
   server: {
     port: 5173,

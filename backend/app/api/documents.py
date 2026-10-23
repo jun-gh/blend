@@ -26,13 +26,19 @@ from app.models.schemas import (
     DocumentRead,
     ExtractedTextResponse,
 )
+from app.security.rate_limiter import rate_limit_ingest
 from app.services.extractor import extract_text_from_upload
 from app.services.ingestion import ingest_document
 
 router = APIRouter(dependencies=[Depends(require_site_auth)])
 
 
-@router.post("/", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=DocumentRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_ingest)],
+)
 async def create_document(
     payload: DocumentCreate,
     session: AsyncSession = Depends(get_session),
@@ -62,7 +68,11 @@ async def create_document(
     return DocumentRead.model_validate(doc)
 
 
-@router.post("/extract-text", response_model=ExtractedTextResponse)
+@router.post(
+    "/extract-text",
+    response_model=ExtractedTextResponse,
+    dependencies=[Depends(rate_limit_ingest)],
+)
 async def extract_text_endpoint(
     file: UploadFile = File(...),
 ) -> ExtractedTextResponse:
@@ -86,7 +96,12 @@ async def extract_text_endpoint(
     return ExtractedTextResponse(text=extracted, filename=filename)
 
 
-@router.post("/upload", response_model=DocumentRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/upload",
+    response_model=DocumentRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_ingest)],
+)
 async def upload_document(
     file: UploadFile = File(...),
     title: str | None = Form(None),

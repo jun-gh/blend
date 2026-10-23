@@ -1,9 +1,14 @@
 """Application configuration via Pydantic v2 BaseSettings."""
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_ROOT_ENV = _REPO_ROOT / ".env"
+_BACKEND_ENV = Path(__file__).resolve().parents[2] / ".env"
 
 
 def format_model_name(model_id: str) -> str:
@@ -32,7 +37,7 @@ def format_model_name(model_id: str) -> str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env", "backend/.env", "infra/app.env"),
+        env_file=(_ROOT_ENV, ".env", "../.env", _BACKEND_ENV, "infra/app.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -43,14 +48,23 @@ class Settings(BaseSettings):
     debug: bool = False
     cors_origins: list[str] = ["*"]
     site_password: str | None = Field(default="", alias="SITE_PASSWORD")
+    blend_api_key: str | None = Field(default="", alias="BLEND_API_KEY")
     token_expiry_days: int = 7
     session_expiry_days: int = Field(default=7, alias="SESSION_EXPIRY_DAYS")
     max_documents_per_session: int = Field(default=10, alias="MAX_DOCUMENTS_PER_SESSION")
 
+    # Security & Guardrails
+    enable_rate_limiting: bool = Field(default=True, alias="ENABLE_RATE_LIMITING")
+    rate_limit_query_per_min: int = Field(default=30, alias="RATE_LIMIT_QUERY_PER_MIN")
+    rate_limit_ingest_per_min: int = Field(default=15, alias="RATE_LIMIT_INGEST_PER_MIN")
+    rate_limit_auth_per_min: int = Field(default=10, alias="RATE_LIMIT_AUTH_PER_MIN")
+    enable_pii_scrubbing: bool = Field(default=True, alias="ENABLE_PII_SCRUBBING")
+    enable_prompt_guard: bool = Field(default=True, alias="ENABLE_PROMPT_GUARD")
+    enable_output_shield: bool = Field(default=True, alias="ENABLE_OUTPUT_SHIELD")
+
     # Database
-    database_url: str = "sqlite+aiosqlite:///./blend.db"
-    # Set to a Neon Postgres URL in production:
-    # database_url: str = "postgresql+asyncpg://user:pass@host/dbname"
+    database_url: str = "postgresql+asyncpg://blend:blend_local_password@localhost:5432/blend"
+
 
     # Google Gemini
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
@@ -69,7 +83,9 @@ class Settings(BaseSettings):
 
     # Retrieval
     top_k_retrieval: int = 10   # Docs fetched before re-ranking
-    top_k_context: int = 5      # Docs sent to LLM context window
+    top_k_context: int = 5      # Docs sent to LLM context window (maximum citations)
+    similarity_threshold: float = Field(default=0.50, alias="SIMILARITY_THRESHOLD")
+    relative_score_threshold: float = Field(default=0.80, alias="RELATIVE_SCORE_THRESHOLD")
 
 
 @lru_cache

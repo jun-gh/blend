@@ -11,8 +11,8 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+ROOT_ENV = ROOT / ".env"
 BACKEND_ENV = ROOT / "backend" / ".env"
-FALLBACK_ENV = ROOT / ".env"
 APP_ENV = ROOT / "infra" / "app.env"
 MAIN_BICEP = ROOT / "infra" / "main.bicep"
 CONTAINER_APP_BICEP = ROOT / "infra" / "modules" / "container-app.bicep"
@@ -48,8 +48,8 @@ def parse_env_file(path: Path) -> dict[str, str]:
 
 
 def sync() -> None:
-    env_data = parse_env_file(FALLBACK_ENV)
-    env_data.update(parse_env_file(BACKEND_ENV))
+    env_data = parse_env_file(BACKEND_ENV)
+    env_data.update(parse_env_file(ROOT_ENV))
 
     synced: dict[str, str] = {}
     for key in SYNC_KEYS:

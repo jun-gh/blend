@@ -84,6 +84,8 @@ async def init_db() -> None:
                     )
                 )
         else:
+            with contextlib.suppress(Exception):
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             await conn.execute(
                 text(
                     "ALTER TABLE documents ADD COLUMN IF NOT EXISTS "

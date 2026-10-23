@@ -1,9 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        // Extended gray shades for subtle elevation
+        gray: {
+          750: '#2b3544',
+          850: '#172033',
+        },
         // Blend brand palette (Dark Gray theme)
         brand: {
           50:  '#f9fafb',

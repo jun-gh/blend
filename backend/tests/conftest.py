@@ -1,10 +1,18 @@
 """Shared test fixtures and global mocks for backend tests."""
 
+import os
 from unittest.mock import patch
 
 import pytest
 
-from app.core.config import settings
+# Ensure unit tests execute against an isolated test DB to avoid wiping or polluting
+# the active development/production PostgreSQL database
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test_blend.db")
+
+from app.core.config import get_settings, settings  # noqa: E402
+
+get_settings.cache_clear()
+
 
 
 @pytest.fixture(autouse=True)

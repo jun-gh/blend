@@ -38,8 +38,11 @@ async def ingest_document(
     session.add(doc)
     await session.flush()  # obtain doc.id without committing yet
 
-    # 2. Chunk text
-    chunks_text: list[str] = chunk_text(payload.content)
+    # 2. Normalize and Chunk text
+    from app.services.extractor import clean_extracted_text
+
+    content_to_chunk = clean_extracted_text(payload.content)
+    chunks_text: list[str] = chunk_text(content_to_chunk)
     if not chunks_text:
         log.warning("Document '%s' produced no chunks.", payload.title)
         await session.commit()
