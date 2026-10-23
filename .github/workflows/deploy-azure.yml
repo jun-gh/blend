@@ -90,7 +90,7 @@ jobs:
             existingEnvironmentId="${{ secrets.AZURE_CONTAINER_APP_ENV_ID }}"
             appLocation="southeastasia"
             sitePassword="${{ secrets.SITE_PASSWORD }}"
-            corsOrigins="${{ vars.CORS_ORIGINS || secrets.CORS_ORIGINS || '[\"https://blend-jmco.vercel.app\"]' }}"
+            corsOrigins="${{ vars.CORS_ORIGINS || secrets.CORS_ORIGINS || 'https://blend-jmco.vercel.app' }}"
           failOnStdErr: false
 
       - name: Verify deployment
