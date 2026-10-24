@@ -202,9 +202,6 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-API is now live at **https://blend-api.ambitiousflower-4ef79cd6.southeastasia.azurecontainerapps.io**  
-Interactive docs: **https://blend-api.ambitiousflower-4ef79cd6.southeastasia.azurecontainerapps.io/docs**
-
 ### 3. Frontend
 
 ```bash
@@ -419,8 +416,13 @@ The MCP server exposes `blend_search` as a tool that any MCP-compatible AI clien
 | `DEBUG`                     | `false`                                                                 | Enable SQL echo & verbose logging    |
 | `CORS_ORIGINS`              | `["http://localhost:5173"]`         | Allowed CORS origins (JSON array)    |
 
----
+## License & Commercial Inquiries
 
-## License
+Copyright © 2026 Martin Abanes. All rights reserved.
 
-MIT
+This project is made publicly available for educational study, code demonstration, and portfolio review.
+
+- **Non-Commercial Use:** Free for personal inspection, research, and non-commercial evaluation.
+- **Commercial Use:** Commercial deployment, white-labeling, or client integration requires an explicit commercial agreement or engagement.
+
+For freelance consulting, custom AI/RAG system architecture, or commercial licensing inquiries, contact **Martin Abanes** at [miabanes@gmail.com](mailto:miabanes@gmail.com).
