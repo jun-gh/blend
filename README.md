@@ -8,6 +8,29 @@ Live: **https://blend-jmco.vercel.app**
 
 ---
 
+## Table of Contents
+
+- [Architecture Overview](#architecture-overview)
+  - [Hybrid Search: How It Works](#hybrid-search-how-it-works)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Quick Start — Local Development](#quick-start--local-development)
+  - [Option A: Docker Compose with PostgreSQL (Recommended)](#option-a-docker-compose-with-postgresql-recommended--matches-production)
+  - [Option B: Native Python & Vite](#option-b-native-python--vite-without-docker)
+- [Usage](#usage)
+  - [Ingest a Document](#ingest-a-document)
+  - [Query the Knowledge Base](#query-the-knowledge-base)
+  - [MCP Server](#mcp-server-for-claude-desktop--cursor)
+- [Running Tests](#running-tests)
+- [Production Deployment](#production-deployment)
+  - [Azure Container Apps](#azure-container-apps-via-github-actions)
+  - [Frontend — Vercel](#frontend--vercel)
+- [Production Database — Neon Postgres + pgvector](#production-database--neon-postgres--pgvector)
+- [Key Concepts for Learning](#key-concepts-for-learning)
+- [License & Commercial Inquiries](#license--commercial-inquiries)
+
+---
+
 ## Architecture Overview
 
 ```
@@ -391,38 +414,11 @@ The MCP server exposes `blend_search` as a tool that any MCP-compatible AI clien
 
 ---
 
-## Environment Variables
-
-| Variable                    | Default                                                                 | Description                          |
-|-----------------------------|-------------------------------------------------------------------------|--------------------------------------|
-| `DATABASE_URL`              | `postgresql+asyncpg://blend:blend_local_password@localhost:5432/blend`  | Database connection string           |
-| `GEMINI_API_KEY`            | —                                                                       | **Required.** Google AI API key      |
-| `GEMINI_EMBED_MODEL`        | `models/text-embedding-004`                                             | Embedding model                      |
-| `GEMINI_CHAT_MODEL`         | `models/gemini-2.0-flash`                                               | Chat/generation model (dynamic)      |
-| `SITE_PASSWORD`             | —                                                                       | Optional visitor password protection |
-| `SESSION_EXPIRY_DAYS`       | `7`                                                                     | Days before session docs expire      |
-| `MAX_DOCUMENTS_PER_SESSION` | `10`                                                                    | Max documents allowed per session    |
-| `EMBEDDING_DIMENSIONS`      | `768`                                                                   | Vector dimensionality                |
-| `DENSE_WEIGHT`              | `0.6`                                                                   | RRF dense score weight               |
-| `SPARSE_WEIGHT`             | `0.4`                                                                   | RRF sparse score weight              |
-| `TOP_K_RETRIEVAL`           | `10`                                                                    | Chunks retrieved per query           |
-| `TOP_K_CONTEXT`             | `5`                                                                     | Chunks sent to LLM                   |
-| `SIMILARITY_THRESHOLD`      | `0.50`                                                                  | Minimum cosine similarity cutoff     |
-| `RELATIVE_SCORE_THRESHOLD`  | `0.80`                                                                  | Adaptive drop-off cutoff             |
-| `ENABLE_RATE_LIMITING`      | `true`                                                                  | Sliding window rate limiter          |
-| `ENABLE_PII_SCRUBBING`      | `true`                                                                  | Automatic PII scrubbing              |
-| `ENABLE_PROMPT_GUARD`       | `true`                                                                  | Prompt injection boundary protection |
-| `ENABLE_OUTPUT_SHIELD`      | `true`                                                                  | LLM system prompt leak prevention    |
-| `DEBUG`                     | `false`                                                                 | Enable SQL echo & verbose logging    |
-| `CORS_ORIGINS`              | `["http://localhost:5173"]`         | Allowed CORS origins (JSON array)    |
-
 ## License & Commercial Inquiries
 
-Copyright © 2026 Martin Abanes. All rights reserved.
+Copyright © 2026-present Martin Abanes. All rights reserved.
 
-This project is made publicly available for educational study, code demonstration, and portfolio review.
+**Non-Commercial Use**: Free for personal inspection, research, and non-commercial evaluation.  
+**Commercial Use**: Commercial deployment, white-labeling, or client integration requires an explicit commercial agreement or engagement.
 
-- **Non-Commercial Use:** Free for personal inspection, research, and non-commercial evaluation.
-- **Commercial Use:** Commercial deployment, white-labeling, or client integration requires an explicit commercial agreement or engagement.
-
-For freelance consulting, custom AI/RAG system architecture, or commercial licensing inquiries, contact **Martin Abanes** at [miabanes@gmail.com](mailto:miabanes@gmail.com).
+For freelance consulting or commercial licensing inquiries, contact Martin Abanes at [miabanes@gmail.com](mailto:miabanes@gmail.com).
