@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     # App
     app_name: str = "Blend"
     debug: bool = False
-    cors_origins: list[str] = ["*"]
+    cors_origins: Any = ["*"]
     site_password: str | None = Field(default="", alias="SITE_PASSWORD")
     blend_api_key: str | None = Field(default="", alias="BLEND_API_KEY")
 
